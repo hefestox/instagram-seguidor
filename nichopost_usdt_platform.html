@@ -393,7 +393,6 @@ function loadTarefasDisp(){
         <div>
           <p><strong>${IC[t.tipo]||'📌'} ${t.tipo}</strong> — ${t.quantidade} ações</p>
           <p style="color:#555">📱 ${t.conta}</p>
-          <p style="color:#666">Contratante: <strong>${t.contratante||'-'}</strong></p>
           <p style="color:#38a169;font-weight:bold">💰 +${f4(t.recompensa*t.quantidade)} USDT</p>
         </div>
         <button class="btn-green" onclick="pegarTarefa(${t.id})" style="white-space:nowrap">✅ Pegar</button>
