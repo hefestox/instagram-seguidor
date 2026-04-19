@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NichoPost - Plataforma USDT</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        header {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            color: #4a5568;
+        }
+        nav {
+            background: #fff;
+            padding: 0.5rem;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+        }
+        nav button {
+            background: #e2e8f0;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            margin: 0.25rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        nav button.active {
+            background: #667eea;
+            color: white;
+        }
+        nav button:hover {
+            background: #cbd5e0;
+        }
+        main {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .section.active {
+            display: block;
+        }
+        h2 {
+            color: #2d3748;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        .card {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        input, select, textarea {
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .metric {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .metric small {
+            display: block;
+            font-size: 0.8rem;
+            color: #718096;
+        }
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column;
+            }
+            main {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>NichoPost - Plataforma de Automação Instagram com USDT</h1>
+        <p>Usuário: {{ user }} | Saldo: {{ "%.2f"|format(saldo) }} USDT | Assinado: {% if subscribed %}Sim{% else %}Não{% endif %}</p>
+        <a href="/logout">Logout</a>
+    </header>
+    <nav>
+        <button class="tab active" onclick="showSection('dashboard')">Dashboard</button>
+        <button class="tab" onclick="showSection('nichos')">Nichos</button>
+        <button class="tab" onclick="showSection('conteudo')">Conteúdo</button>
+        <button class="tab" onclick="showSection('contas')">Contas</button>
+        <button class="tab" onclick="showSection('agendamento')">Agendamento</button>
+        <button class="tab" onclick="showSection('anuncios')">Anúncios</button>
+        <button class="tab" onclick="showSection('marketplace')">Marketplace USDT</button>
+        <button class="tab" onclick="showSection('pagamentos')">Pagamentos USDT</button>
+        <button class="tab" onclick="showSection('verificacao')">Verificação</button>
+        <button class="tab" onclick="showSection('trabalhador')">Trabalhador</button>
+    </nav>
+    <main>
+        <section id="dashboard" class="section active">
+            <h2>Dashboard Geral</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="metric" id="metric-contas">5</div>
+                    <small>Contas Gerenciadas</small>
+                </div>
+                <div class="card">
+                    <div class="metric" id="metric-posts">127</div>
+                    <small>Posts Agendados</small>
+                </div>
+                <div class="card">
+                    <div class="metric" id="metric-orcamento">$2,450</div>
+                    <small>Orçamento Anúncios</small>
+                </div>
+                <div class="card">
+                    <div class="metric" id="metric-tarefas">1,203</div>
+                    <small>Tarefas Marketplace</small>
+                </div>
+            </div>
+            <p>Bem-vindo ao NichoPost! Aqui você gerencia tudo relacionado ao seu Instagram de forma ética e automatizada.</p>
+        </section>
+
+        <section id="nichos" class="section">
+            <h2>Nichos Disponíveis</h2>
+            <div class="grid">
+                <div class="card">Bíblico</div>
+                <div class="card">Futebol</div>
+                <div class="card">Política</div>
+                <div class="card">Entretenimento</div>
+                <div class="card">Moda & Beleza</div>
+                <div class="card">Gastronomia</div>
+                <div class="card">Fitness & Saúde</div>
+                <div class="card">Finanças & Cripto</div>
+                <div class="card">Games</div>
+                <div class="card">Viagem & Lifestyle</div>
+            </div>
+            <p>Selecione um nicho para gerar conteúdo personalizado.</p>
+        </section>
+
+        <section id="conteudo" class="section">
+            <h2>Gerador de Conteúdo</h2>
+            <label for="nicho-select">Escolha o Nicho:</label>
+            <select id="nicho-select">
+                {% for nicho in nichos %}
+                <option value="{{ nicho }}">{{ nicho.capitalize() }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="gerarConteudo()">Gerar Post</button>
+            <div id="conteudo-gerado" class="card" style="margin-top: 1rem;"></div>
+        </section>
+
+        <section id="contas" class="section">
+            <h2>Gerenciamento de Contas</h2>
+            <div class="card">
+                <h3>Adicionar Nova Conta</h3>
+                <label>Nome da Conta:</label>
+                <input type="text" id="nova-conta" placeholder="@exemplo">
+                <label>Nicho:</label>
+                <select id="nicho-conta">
+                    {% for nicho in nichos %}
+                    <option value="{{ nicho }}">{{ nicho.capitalize() }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="adicionarConta()">Adicionar Conta</button>
+            </div>
+            <div id="lista-contas" class="grid">
+                {% for conta in contas %}
+                <div class="card">
+                    <h3>{{ conta.nome }}</h3>
+                    <p>Seguidores: {{ conta.seguidores }} | Nicho: {{ conta.nicho }}</p>
+                    <button onclick="editarConta('{{ conta.nome }}')">Editar</button>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="agendamento" class="section">
+            <h2>Agendamento de Posts</h2>
+            <div class="card">
+                <h3>Agendar Novo Post</h3>
+                <label>Conta:</label>
+                <select id="conta-agendamento">
+                    <option value="@conta_biblica">@conta_biblica</option>
+                    <option value="@futebol_news">@futebol_news</option>
+                    <option value="@politica_atual">@politica_atual</option>
+                    <option value="@entretenimento_fun">@entretenimento_fun</option>
+                    <option value="@pump_sniper">@pump_sniper</option>
+                </select>
+                <label>Data e Hora:</label>
+                <input type="datetime-local" id="data-agendamento">
+                <label>Conteúdo:</label>
+                <textarea id="conteudo-agendamento" placeholder="Digite o texto do post..."></textarea>
+                <button onclick="agendarPost()">Agendar Post</button>
+            </div>
+            <div id="lista-agendamentos">
+                {% for agendamento in agendamentos %}
+                <div class="card">
+                    <p><strong>{{ agendamento.conta }}:</strong> {{ agendamento.conteudo }} agendado para {{ agendamento.data }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="anuncios" class="section">
+            <h2>Campanhas de Anúncios</h2>
+            <div class="card">
+                <h3>Criar Nova Campanha</h3>
+                <label>Nome da Campanha:</label>
+                <input type="text" id="nome-campanha" placeholder="Ex: Campanha Bíblica">
+                <label>Orçamento (USD):</label>
+                <input type="number" id="orcamento-campanha" placeholder="100">
+                <label>Nicho Alvo:</label>
+                <select id="nicho-campanha">
+                    {% for nicho in nichos %}
+                    <option value="{{ nicho }}">{{ nicho.capitalize() }}</option>
+                    {% endfor %}
+                </select>
+                <button onclick="criarCampanha()">Criar Campanha</button>
+            </div>
+            <div id="lista-campanhas" class="grid">
+                {% for campanha in campanhas %}
+                <div class="card">
+                    <h3>{{ campanha.nome }}</h3>
+                    <p>Alcance: {{ campanha.alcance }} | Cliques: {{ campanha.cliques }} | Custo: ${{ campanha.custo }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="marketplace" class="section">
+            <h2>⚡ Marketplace Inteligente de Tarefas</h2>
+            <div class="card">
+                <h3>💰 Contratar Engajamento para sua Conta</h3>
+                
+                <label><strong>📱 Selecione sua Conta Instagram:</strong></label>
+                <select id="conta-tarefa" style="width: 100%; padding: 10px; margin-bottom: 1rem; font-size: 16px;">
+                    <option value="">-- Escolha uma conta --</option>
+                </select>
+                
+                <label><strong>🎯 Tipo de Engajamento:</strong></label>
+                <select id="tipo-tarefa" onchange="atualizarPrecos()" style="width: 100%; padding: 10px; margin-bottom: 1rem; font-size: 16px;">
+                    <option value="curtida">❤️ Curtidas - 0.001 USDT cada</option>
+                    <option value="comentario">💬 Comentários - 0.002 USDT cada</option>
+                    <option value="seguidor">👥 Seguidores - 0.003 USDT cada</option>
+                    <option value="story">📖 Stories - 0.0005 USDT cada</option>
+                </select>
+                
+                <label><strong>🔢 Quantidade Desejada:</strong></label>
+                <input type="number" id="quantidade-tarefa" value="10" min="1" max="10000" onchange="atualizarPrecos()" style="width: 100%; padding: 10px; margin-bottom: 1rem;">
+                
+                <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #667eea;">
+                    <p style="margin: 5px 0;"><strong>💵 Valor Total: <span id="recompensa-total" style="color: #667eea; font-size: 18px;">0.00</span> USDT</strong></p>
+                    <small style="color: #666;">✅ Será debitado de sua carteira</small><br>
+                    <small style="color: #666;">✅ Trabalhadores executarão a tarefa</small>
+                </div>
+                
+                <button onclick="contratarTarefa()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #48bb78, #38a169); color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 16px;">➕ Contratar Agora</button>
+            </div>
+            
+            <div class="card">
+                <h3>� Status das Tarefas Contratadas</h3>
+                <div id="minhas-tarefas-contratadas" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+            
+            <div class="card">
+                <h3>🎁 Plano de Assinatura</h3>
+                <p>NichoPost Pro: $9.99 USDT/mês - Acesso ilimitado ao marketplace.</p>
+                <button onclick="assinar()" style="width: 100%; padding: 10px; background: #48bb78; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold;">Assinar</button>
+            </div>
+        </section>
+
+        <section id="trabalhador" class="section">
+            <h2>👷 Painel do Trabalhador</h2>
+            <div class="card">
+                <h3>Tarefas Disponíveis</h3>
+                <div id="tarefas-disponiveis"></div>
+            </div>
+            <div class="card">
+                <h3>Minhas Tarefas</h3>
+                <div id="minhas-tarefas"></div>
+            </div>
+        </section>
+
+        <section id="pagamentos" class="section">
+            <h2>Pagamentos USDT</h2>
+            <div class="card">
+                <h3>Como Funciona</h3>
+                <p><strong>Fluxo de Pagamentos:</strong></p>
+                <ul>
+                    <li>💰 <strong>Assinaturas:</strong> R$ 9.99 USDT/mês → Sua Carteira</li>
+                    <li>📋 <strong>Tarefas Contratadas:</strong> Usuários pagam → Sua Carteira</li>
+                    <li>👷 <strong>Pagamentos a Trabalhadores:</strong> Seu saldo (de tarefas) → Trabalhadores</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Endereço de Carteira</h3>
+                <p>Rede: Ethereum</p>
+                <p>Endereço: 0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd</p>
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd" alt="QR Code">
+                <p><strong>Todos os valores (assinaturas e pagamentos de tarefas) vão direto para sua carteira.</strong></p>
+            </div>
+        </section>
+
+        <section id="saque" class="section">
+            <h2>💸 Saque de Ganhos (Withdraw)</h2>
+            <div class="card">
+                <h3>Ver Ganhos</h3>
+                <p>Saldo Disponível: <span id="saldo-trabalhador">0.00</span> USDT</p>
+                <p>Ganhos Totais: <span id="ganhos-totais">0.00</span> USDT</p>
+                <p>Tarefas Completas: <span id="tarefas-completas">0</span></p>
+            </div>
+            
+            <div class="card">
+                <h3>Solicitar Saque</h3>
+                <label>Endereço da Carteira Ethereum:</label>
+                <input type="text" id="carteira-saque" placeholder="0x..." style="width: 100%; padding: 8px; margin-bottom: 1rem;">
+                
+                <label>Valor para Sacar (USDT):</label>
+                <input type="number" id="valor-saque" min="0.01" step="0.01" style="width: 100%; padding: 8px; margin-bottom: 1rem;">
+                
+                <p>⚠️ Taxas: 2% do valor (mínimo 0.01 USDT)</p>
+                <p>Você receberá: <span id="valor-liquido">0.00</span> USDT</p>
+                
+                <button onclick="solicitarSaque()" style="width: 100%; padding: 10px; background: #f6ad55; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold;">Solicitar Saque</button>
+            </div>
+            
+            <div class="card">
+                <h3>Histórico de Saques</h3>
+                <div id="historico-saques" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+        </section>
+
+        <section id="verificacao" class="section">
+            <h2>Verificação de Tarefas</h2>
+            <div class="card">
+                <h3>Tarefas Pendentes</h3>
+                <div id="tarefas-lista"></div>
+            </div>
+            <div class="card">
+                <h3>Enviar Prova</h3>
+                <label>ID da Tarefa:</label>
+                <input type="number" id="tarefa-id">
+                <label>Upload de Print:</label>
+                <input type="file" id="proof-file" accept="image/*">
+                <button onclick="enviarProva()">Enviar Prova</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function gerarConteudo() {
+            const nicho = document.getElementById('nicho-select').value;
+            fetch(`/api/conteudo/${nicho}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('conteudo-gerado').innerHTML = `<p>${data.conteudo}</p>`;
+                });
+        }
+
+        function calcular() {
+            const curtidas = parseInt(document.getElementById('curtidas').value) || 0;
+            const comentarios = parseInt(document.getElementById('comentarios').value) || 0;
+            const seguidores = parseInt(document.getElementById('seguidores').value) || 0;
+            const stories = parseInt(document.getElementById('stories').value) || 0;
+            fetch('/api/marketplace/calcular', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ curtidas, comentarios, seguidores, stories })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('custo-curtidas').textContent = data.custo_curtidas;
+                document.getElementById('custo-comentarios').textContent = data.custo_comentarios;
+                document.getElementById('custo-seguidores').textContent = data.custo_seguidores;
+                document.getElementById('custo-stories').textContent = data.custo_stories;
+                document.getElementById('total').textContent = data.total;
+            });
+        }
+
+        function adicionarConta() {
+            const nome = document.getElementById('nova-conta').value;
+            const nicho = document.getElementById('nicho-conta').value;
+            if (nome) {
+                fetch('/api/contas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, nicho })
+                })
+                .then(response => response.json())
+                .then(() => {
+                    alert('Conta adicionada!');
+                    location.reload();  // Recarregar para atualizar a lista
+                });
+            }
+        }
+
+        function editarConta(conta) {
+            alert(`Editar conta: ${conta} (funcionalidade mock)`);
+        }
+
+        function agendarPost() {
+            const conta = document.getElementById('conta-agendamento').value;
+            const data = document.getElementById('data-agendamento').value;
+            const conteudo = document.getElementById('conteudo-agendamento').value;
+            if (data && conteudo) {
+                fetch('/api/agendamentos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ conta, data, conteudo })
+                })
+                .then(response => response.json())
+                .then(() => {
+                    alert('Post agendado!');
+                    location.reload();
+                });
+            }
+        }
+
+        function criarCampanha() {
+            const nome = document.getElementById('nome-campanha').value;
+            const orcamento = document.getElementById('orcamento-campanha').value;
+            const nicho = document.getElementById('nicho-campanha').value;
+            if (nome && orcamento) {
+                fetch('/api/campanhas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome, orcamento: parseFloat(orcamento), nicho })
+                })
+                .then(response => response.json())
+                .then(() => {
+                    alert('Campanha criada!');
+                    location.reload();
+                });
+            }
+        }
+
+        // Inicializar cálculo
+        calcular();
+
+        // Carregar contas para o select de agendamento
+        window.onload = function() {
+            fetch('/api/contas')
+                .then(response => response.json())
+                .then(contas => {
+                    const select = document.getElementById('conta-agendamento');
+                    contas.forEach(conta => {
+                        const option = document.createElement('option');
+                        option.value = conta.nome;
+                        option.textContent = conta.nome;
+                        select.appendChild(option);
+                    });
+                });
+            // Carregar métricas do dashboard
+            fetch('/api/dashboard')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('metric-contas').textContent = data.contas;
+                    document.getElementById('metric-posts').textContent = data.posts_agendados;
+                    document.getElementById('metric-orcamento').textContent = '$' + data.orcamento_anuncios;
+                    document.getElementById('metric-tarefas').textContent = data.tarefas_marketplace;
+                });
+            // Carregar tarefas pendentes
+            carregarTarefas();
+        };
+
+        function carregarTarefas() {
+            fetch('/api/tarefas')
+                .then(response => response.json())
+                .then(tarefas => {
+                    const lista = document.getElementById('tarefas-lista');
+                    lista.innerHTML = '';
+                    tarefas.forEach(tarefa => {
+                        const div = document.createElement('div');
+                        div.innerHTML = `<p>ID: ${tarefa.id} | Tipo: ${tarefa.tipo} | Quantidade: ${tarefa.quantidade} | Nicho: ${tarefa.nicho} | Status: ${tarefa.status}</p>`;
+                        lista.appendChild(div);
+                    });
+                });
+        }
+
+        function enviarProva() {
+            const tarefaId = document.getElementById('tarefa-id').value;
+            const fileInput = document.getElementById('proof-file');
+            if (!tarefaId || !fileInput.files[0]) {
+                alert('Preencha ID e selecione arquivo.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('proof', fileInput.files[0]);
+            fetch(`/api/verificar/${tarefaId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+                carregarTarefas();
+            });
+        }
+
+        function contratarTarefa() {
+            const curtidas = parseInt(document.getElementById('curtidas').value) || 0;
+            const comentarios = parseInt(document.getElementById('comentarios').value) || 0;
+            const seguidores = parseInt(document.getElementById('seguidores').value) || 0;
+            const stories = parseInt(document.getElementById('stories').value) || 0;
+            const total = parseFloat(document.getElementById('total').textContent);
+            fetch('/api/tarefas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ curtidas, comentarios, seguidores, stories, nicho: 'geral', total })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+                if (data.message) {
+                    // Recarregar tarefas disponíveis
+                    carregarTarefasDisponiveis();
+                }
+            });
+        }
+
+        function assinar() {
+            fetch('/api/assinar', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || data.error);
+                    location.reload();
+                });
+        }
+
+        function carregarTarefasDisponiveis() {
+            fetch('/api/tarefas/disponiveis')
+                .then(response => response.json())
+                .then(tarefas => {
+                    const div = document.getElementById('tarefas-disponiveis');
+                    div.innerHTML = '';
+                    
+                    if (tarefas.length === 0) {
+                        div.innerHTML = '<p style="text-align: center; color: #999;">📭 Nenhuma tarefa disponível no momento</p>';
+                        return;
+                    }
+                    
+                    // Agrupar por conta
+                    const porConta = {};
+                    tarefas.forEach(t => {
+                        if (!porConta[t.conta]) porConta[t.conta] = [];
+                        porConta[t.conta].push(t);
+                    });
+                    
+                    Object.keys(porConta).forEach(conta => {
+                        const header = document.createElement('h4');
+                        header.style.marginTop = '1rem';
+                        header.style.paddingBottom = '0.5rem';
+                        header.style.borderBottom = '2px solid #667eea';
+                        header.innerHTML = `📱 Conta: <strong>${conta}</strong>`;
+                        div.appendChild(header);
+                        
+                        porConta[conta].forEach(tarefa => {
+                            const iconos = {
+                                'curtida': '❤️',
+                                'comentario': '💬',
+                                'seguidor': '👥',
+                                'story': '📖'
+                            };
+                            const icone = iconos[tarefa.tipo] || '📌';
+                            
+                            const card = document.createElement('div');
+                            card.className = 'card';
+                            card.style.borderLeft = '4px solid #48bb78';
+                            card.innerHTML = `
+                                <div style=\"display: flex; justify-content: space-between; align-items: center;\">\n                                    <div>\n                                        <p style=\"margin: 0; font-size: 14px; color: #666;\">${icone} ${tarefa.tipo}</p>\n                                        <p style=\"margin: 5px 0; font-size: 16px; font-weight: bold;\">${tarefa.quantidade} ações</p>\n                                        <p style=\"margin: 5px 0; color: #10b981; font-size: 14px; font-weight: bold;\">💰 ${(tarefa.recompensa * tarefa.quantidade).toFixed(4)} USDT</p>\n                                    </div>\n                                    <button onclick=\"pegarTarefa(${tarefa.id})\" style=\"background: #48bb78; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;\">\n                                        ✅ Pegar<br><small>Tarefa</small>\n                                    </button>\n                                </div>\n                            `;
+                            div.appendChild(card);
+                        });
+                    });
+                });
+        }
+
+        function pegarTarefa(id) {
+            fetch(`/api/pegar_tarefa/${id}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.message) {
+                        alert('✅ ' + data.message);
+                    } else {
+                        alert('❌ ' + (data.error || 'Erro ao pegar tarefa'));
+                    }
+                    carregarTarefasDisponiveis();
+                    carregarMinhasTarefas();
+                });
+        }
+
+        function carregarMinhasTarefas() {
+            fetch('/api/minhas_tarefas')
+                .then(response => response.json())
+                .then(tarefas => {
+                    const div = document.getElementById('minhas-tarefas');
+                    div.innerHTML = '';
+                    
+                    if (tarefas.length === 0) {
+                        div.innerHTML = '<p style="text-align: center; color: #999;">📭 Você não tem tarefas em progresso</p>';
+                        return;
+                    }
+                    
+                    tarefas.forEach(tarefa => {
+                        const iconos = {
+                            'curtida': '❤️',
+                            'comentario': '💬',
+                            'seguidor': '👥',
+                            'story': '📖'
+                        };
+                        const icone = iconos[tarefa.tipo] || '📌';
+                        
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.innerHTML = `
+                            <p><strong>ID:</strong> ${tarefa.id}</p>
+                            <p><strong>Tipo:</strong> ${tarefa.tipo}</p>
+                            <p><strong>Quantidade:</strong> ${tarefa.quantidade}</p>
+                            <p><strong>Nicho:</strong> ${tarefa.nicho}</p>
+                            <p><strong>Status:</strong> ${tarefa.status}</p>
+                            <p><strong>Recompensa:</strong> ${tarefa.recompensa} USDT</p>
+                            ${tarefa.status === 'em_andamento' ? `<input type="file" id="proof-${tarefa.id}" accept="image/*"><button onclick="enviarProvaTarefa(${tarefa.id})">Enviar Prova</button>` : ''}
+                        `;
+                        div.appendChild(card);
+                    });
+                });
+        }
+
+        function enviarProvaTarefa(id) {
+            const fileInput = document.getElementById(`proof-${id}`);
+            if (!fileInput.files[0]) {
+                alert('Selecione um arquivo de prova.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('proof', fileInput.files[0]);
+            fetch(`/api/verificar/${id}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+                carregarMinhasTarefas();
+            });
+        }
+
+        // Preços automáticos por tipo
+        const precos = {
+            'curtida': 0.001,
+            'comentario': 0.002,
+            'seguidor': 0.003,
+            'story': 0.0005
+        };
+
+        function atualizarPrecos() {
+            const tipo = document.getElementById('tipo-tarefa').value;
+            const quantidade = parseInt(document.getElementById('quantidade-tarefa').value) || 0;
+            const preco = precos[tipo] || 0;
+            const total = quantidade * preco;
+            document.getElementById('recompensa-total').textContent = total.toFixed(4);
+        }
+
+        function contratarTarefa() {
+            const conta = document.getElementById('conta-tarefa').value;
+            const tipo = document.getElementById('tipo-tarefa').value;
+            const quantidade = parseInt(document.getElementById('quantidade-tarefa').value);
+            const preco = precos[tipo] || 0;
+            const total = quantidade * preco;
+            
+            if (!conta) {
+                alert('❌ Selecione uma conta do Instagram');
+                return;
+            }
+            
+            if (quantidade < 1) {
+                alert('❌ Quantidade inválida');
+                return;
+            }
+            
+            fetch('/api/tarefas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    conta,
+                    tipo, 
+                    quantidade, 
+                    recompensa: preco,
+                    total,
+                    nicho: 'instagram' 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert('✅ ' + data.message);
+                    document.getElementById('quantidade-tarefa').value = '10';
+                    atualizarPrecos();
+                    carregarTarefasDisponiveis();
+                    carregarMinhasTarefasContratadas();
+                } else {
+                    alert('❌ ' + (data.error || 'Erro ao contratar'));
+                }
+            })
+            .catch(err => alert('❌ Erro: ' + err));
+        }
+
+        function carregarMinhasTarefasContratadas() {
+            fetch('/api/minhas_tarefas_contratadas')
+                .then(response => response.json())
+                .then(tarefas => {
+                    const div = document.getElementById('minhas-tarefas-contratadas');
+                    div.innerHTML = '';
+                    if (tarefas.length === 0) {
+                        div.innerHTML = '<p style="text-align: center; color: #999;">📭 Nenhuma tarefa em execução</p>';
+                        return;
+                    }
+                    
+                    // Agrupar por conta
+                    const porConta = {};
+                    tarefas.forEach(t => {
+                        if (!porConta[t.conta]) porConta[t.conta] = [];
+                        porConta[t.conta].push(t);
+                    });
+                    
+                    Object.keys(porConta).forEach(conta => {
+                        const tarefasConta = porConta[conta];
+                        tarefasConta.forEach(tarefa => {
+                            const iconos = {
+                                'curtida': '❤️',
+                                'comentario': '💬',
+                                'seguidor': '👥',
+                                'story': '📖'
+                            };
+                            const icone = iconos[tarefa.tipo] || '📌';
+                            
+                            const card = document.createElement('div');
+                            card.className = 'card';
+                            card.style.borderLeft = '4px solid #667eea';
+                            card.innerHTML = `
+                                <p><strong>${icone} Conta:</strong> ${tarefa.conta}</p>
+                                <p><strong>Tipo:</strong> ${tarefa.tipo}</p>
+                                <p><strong>Quantidade:</strong> ${tarefa.quantidade}</p>
+                                <p><strong>Pagamento Total:</strong> <span style=\"color: #48bb78; font-weight: bold;\">${tarefa.total.toFixed(4)} USDT</span></p>
+                                <p><strong>Executor:</strong> ${tarefa.trabalhador ? '<span style=\"background: #48bb78; color: white; padding: 2px 8px; border-radius: 3px;\">' + tarefa.trabalhador + '</span>' : '<span style=\"color: #999;\">⏳ Aguardando</span>'}</p>
+                                <p><strong>Status:</strong> 
+                                    <span style=\"${{'pendente': 'color: #f59e0b;', 'em_andamento': 'color: #3b82f6;', 'concluida': 'color: #10b981;'}[tarefa.status] || 'color: #666;'}\">
+                                        ${{'pendente': '⏳ Aguardando', 'em_andamento': '⚙️ Em Execução', 'concluida': '✅ Completa', 'cancelada': '❌ Cancelada'}[tarefa.status] || tarefa.status}
+                                    </span>
+                                </p>
+                            `;
+                            div.appendChild(card);
+                        });
+                    });
+                });
+        }
+
+        function solicitarSaque() {
+            const carteira = document.getElementById('carteira-saque').value;
+            const valor = parseFloat(document.getElementById('valor-saque').value);
+            
+            if (!carteira.trim() || !carteira.startsWith('0x')) {
+                alert('Endereço de carteira inválido');
+                return;
+            }
+            
+            if (valor < 0.01) {
+                alert('Valor mínimo: 0.01 USDT');
+                return;
+            }
+            
+            fetch('/api/saque', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ carteira, valor })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error);
+                if (data.message) {
+                    document.getElementById('carteira-saque').value = '';
+                    document.getElementById('valor-saque').value = '';
+                    carregarSaldoTrabalhador();
+                    carregarHistoricoSaques();
+                }
+            });
+        }
+
+        function carregarSaldoTrabalhador() {
+            fetch('/api/saldo_trabalhador')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('saldo-trabalhador').textContent = data.saldo.toFixed(2);
+                    document.getElementById('ganhos-totais').textContent = data.ganhos_totais.toFixed(2);
+                    document.getElementById('tarefas-completas').textContent = data.tarefas_completas;
+                });
+        }
+
+        function carregarHistoricoSaques() {
+            fetch('/api/historico_saques')
+                .then(response => response.json())
+                .then(saques => {
+                    const div = document.getElementById('historico-saques');
+                    div.innerHTML = '';
+                    if (saques.length === 0) {
+                        div.innerHTML = '<p>Nenhum saque realizado</p>';
+                        return;
+                    }
+                    saques.forEach(saque => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.innerHTML = `
+                            <p><strong>Valor:</strong> ${saque.valor} USDT</p>
+                            <p><strong>Carteira:</strong> ${saque.carteira}</p>
+                            <p><strong>Data:</strong> ${saque.data}</p>
+                            <p><strong>Status:</strong> ${saque.status}</p>
+                        `;
+                        div.appendChild(card);
+                    });
+                });
+        }
+
+        // Atualizar window.onload para incluir carregamento do trabalhador
+        window.onload = function() {
+            // Carregar contas para marketplace
+            fetch('/api/contas')
+                .then(response => response.json())
+                .then(contas => {
+                    const selectAgendamento = document.getElementById('conta-agendamento');
+                    const selectTarefa = document.getElementById('conta-tarefa');
+                    contas.forEach(conta => {
+                        // Para agendamento
+                        const option1 = document.createElement('option');
+                        option1.value = conta.nome;
+                        option1.textContent = conta.nome;
+                        if (selectAgendamento) selectAgendamento.appendChild(option1);
+                        
+                        // Para contratar tarefas
+                        const option2 = document.createElement('option');
+                        option2.value = conta.nome;
+                        option2.textContent = `${conta.nome} (${conta.nicho})`;
+                        if (selectTarefa) selectTarefa.appendChild(option2);
+                    });
+                });
+            // Carregar métricas do dashboard
+            fetch('/api/dashboard')
+                .then(response => response.json())
+                .then(data => {
+                    if (document.getElementById('metric-contas')) {
+                        document.getElementById('metric-contas').textContent = data.contas;
+                        document.getElementById('metric-posts').textContent = data.posts_agendados;
+                        document.getElementById('metric-orcamento').textContent = '$' + data.orcamento_anuncios;
+                        document.getElementById('metric-tarefas').textContent = data.tarefas_marketplace;
+                    }
+                });
+            // Carregar tarefas pendentes
+            carregarTarefas();
+            // Carregar tarefas do trabalhador
+            carregarTarefasDisponiveis();
+            carregarMinhasTarefas();
+            // Carregar saldo e histórico de saques
+            carregarSaldoTrabalhador();
+            carregarHistoricoSaques();
+            // Carregar minhas tarefas contratadas
+            carregarMinhasTarefasContratadas();
+            // Atualizar valores quando mudar quantidade ou recompensa
+            calcularRecompensa();
+            // Calcular valor líquido de saque
+            document.getElementById('valor-saque').addEventListener('input', function() {
+                const valor = parseFloat(this.value) || 0;
+                const taxa = valor * 0.02;
+                const liquido = valor - taxa;
+                document.getElementById('valor-liquido').textContent = liquido.toFixed(3);
+            });
+        };
+    </script>
+</body>
+</html>

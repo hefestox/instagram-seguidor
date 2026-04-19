@@ -1,0 +1,6 @@
+nichopost.db
+nichopost_env/
+__pycache__/
+*.pyc
+uploads/
+.env
