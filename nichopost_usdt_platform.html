@@ -138,6 +138,7 @@
         <button class="tab" onclick="showSection('pagamentos', this)">Pagamentos USDT</button>
         <button class="tab" onclick="showSection('verificacao', this)">Verificação</button>
         <button class="tab" onclick="showSection('trabalhador', this)">Trabalhador</button>
+        <button class="tab admin-only" id="admin-tab" onclick="showSection('admin', this)" style="display: none;">Admin</button>
     </nav>
     <main>
         <section id="dashboard" class="section active">
@@ -315,6 +316,22 @@
             <div class="card">
                 <h3>Minhas Tarefas</h3>
                 <div id="minhas-tarefas"></div>
+            </div>
+        </section>
+
+        <section id="admin" class="section">
+            <h2>⚡ Painel Administrativo</h2>
+            <div class="card">
+                <h3>💸 Saques Pendentes</h3>
+                <div id="saques-pendentes"></div>
+            </div>
+            <div class="card">
+                <h3>✅ Tarefas Concluídas (Aguardando Aprovação)</h3>
+                <div id="tarefas-concluidas"></div>
+            </div>
+            <div class="card">
+                <h3>👥 Gerenciar Usuários</h3>
+                <div id="lista-usuarios"></div>
             </div>
         </section>
 
@@ -869,7 +886,144 @@
                 const liquido = valor - taxa;
                 document.getElementById('valor-liquido').textContent = liquido.toFixed(3);
             });
+
+            // Verificar se é admin e mostrar aba
+            fetch('/api/me')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.user === 'admin') {
+                        document.getElementById('admin-tab').style.display = 'inline-block';
+                        carregarSaquesPendentes();
+                        carregarTarefasConcluidas();
+                        carregarUsuarios();
+                    }
+                });
         };
+
+        // ---- FUNÇÕES ADMIN ----
+
+        function carregarSaquesPendentes() {
+            fetch('/api/admin/saques_pendentes')
+                .then(response => response.json())
+                .then(saques => {
+                    const div = document.getElementById('saques-pendentes');
+                    div.innerHTML = '';
+                    if (saques.length === 0) {
+                        div.innerHTML = '<p style="text-align: center; color: #999;">📭 Nenhum saque pendente</p>';
+                        return;
+                    }
+                    saques.forEach(saque => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.style.borderLeft = '4px solid #f6ad55';
+                        card.innerHTML = `
+                            <p><strong>Usuário:</strong> ${saque.usuario}</p>
+                            <p><strong>Valor:</strong> ${saque.valor} USDT</p>
+                            <p><strong>Taxa:</strong> ${saque.taxa} USDT</p>
+                            <p><strong>Líquido:</strong> ${saque.valor_liquido} USDT</p>
+                            <p><strong>Carteira:</strong> ${saque.carteira}</p>
+                            <p><strong>Data:</strong> ${saque.data_solicitacao}</p>
+                            <button onclick="aprovarSaque(${saque.id})" style="background: #48bb78; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-right: 10px;">✅ Aprovar</button>
+                            <button onclick="rejeitarSaque(${saque.id})" style="background: #f56565; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">❌ Rejeitar</button>
+                        `;
+                        div.appendChild(card);
+                    });
+                });
+        }
+
+        function aprovarSaque(id) {
+            fetch(`/api/admin/aprovar_saque/${id}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || data.error);
+                    carregarSaquesPendentes();
+                });
+        }
+
+        function rejeitarSaque(id) {
+            fetch(`/api/admin/rejeitar_saque/${id}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || data.error);
+                    carregarSaquesPendentes();
+                });
+        }
+
+        function carregarTarefasConcluidas() {
+            fetch('/api/admin/tarefas_concluidas')
+                .then(response => response.json())
+                .then(tarefas => {
+                    const div = document.getElementById('tarefas-concluidas');
+                    div.innerHTML = '';
+                    if (tarefas.length === 0) {
+                        div.innerHTML = '<p style="text-align: center; color: #999;">📭 Nenhuma tarefa aguardando aprovação</p>';
+                        return;
+                    }
+                    tarefas.forEach(tarefa => {
+                        const iconos = {
+                            'curtida': '❤️',
+                            'comentario': '💬',
+                            'seguidor': '👥',
+                            'story': '📖'
+                        };
+                        const icone = iconos[tarefa.tipo] || '📌';
+
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.style.borderLeft = '4px solid #10b981';
+                        card.innerHTML = `
+                            <p><strong>ID:</strong> ${tarefa.id}</p>
+                            <p><strong>${icone} Tipo:</strong> ${tarefa.tipo}</p>
+                            <p><strong>Conta:</strong> ${tarefa.conta}</p>
+                            <p><strong>Quantidade:</strong> ${tarefa.quantidade}</p>
+                            <p><strong>Trabalhador:</strong> ${tarefa.trabalhador}</p>
+                            <p><strong>Recompensa:</strong> ${(tarefa.recompensa * tarefa.quantidade).toFixed(4)} USDT</p>
+                            <p><strong>Prova:</strong> <a href="/api/uploads/${tarefa.proof}" target="_blank">Ver Screenshot</a></p>
+                            <button onclick="aprovarTarefa(${tarefa.id})" style="background: #48bb78; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; margin-right: 10px;">✅ Aprovar Pagamento</button>
+                            <button onclick="rejeitarTarefa(${tarefa.id})" style="background: #f56565; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">❌ Rejeitar</button>
+                        `;
+                        div.appendChild(card);
+                    });
+                });
+        }
+
+        function aprovarTarefa(id) {
+            fetch(`/api/admin/aprovar_tarefa/${id}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || data.error);
+                    carregarTarefasConcluidas();
+                });
+        }
+
+        function rejeitarTarefa(id) {
+            fetch(`/api/admin/rejeitar_tarefa/${id}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || data.error);
+                    carregarTarefasConcluidas();
+                });
+        }
+
+        function carregarUsuarios() {
+            fetch('/api/admin/usuarios')
+                .then(response => response.json())
+                .then(usuarios => {
+                    const div = document.getElementById('lista-usuarios');
+                    div.innerHTML = '';
+                    usuarios.forEach(user => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.innerHTML = `
+                            <p><strong>Usuário:</strong> ${user.username}</p>
+                            <p><strong>Saldo:</strong> ${user.saldo.toFixed(4)} USDT</p>
+                            <p><strong>Assinado:</strong> ${user.subscribed ? 'Sim' : 'Não'}</p>
+                            <p><strong>Trabalhador:</strong> ${user.is_worker ? 'Sim' : 'Não'}</p>
+                        `;
+                        div.appendChild(card);
+                    });
+                });
+        }
     </script>
 </body>
 </html>

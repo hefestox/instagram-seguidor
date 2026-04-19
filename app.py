@@ -707,6 +707,118 @@ def serve_upload(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
+# ---- API: ADMIN ----
+
+@app.route('/api/admin/saques_pendentes')
+@require_login
+def admin_saques_pendentes():
+    if session['user'] != 'admin':
+        return jsonify({"error": "Acesso negado"}), 403
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT id,usuario,valor,carteira,taxa,valor_liquido,data_solicitacao FROM saques WHERE status=? ORDER BY data_solicitacao DESC',
+        ('pendente',)
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route('/api/admin/aprovar_saque/<int:saque_id>', methods=['POST'])
+@require_login
+def admin_aprovar_saque(saque_id):
+    if session['user'] != 'admin':
+        return jsonify({"error": "Acesso negado"}), 403
+    conn = get_db()
+    saque = conn.execute('SELECT * FROM saques WHERE id=? AND status=?', (saque_id, 'pendente')).fetchone()
+    if not saque:
+        conn.close()
+        return jsonify({"error": "Saque não encontrado ou já processado"}), 404
+    conn.execute('UPDATE saques SET status=? WHERE id=?', ('aprovado', saque_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": f"Saque de {saque['valor']} USDT aprovado para {saque['usuario']}"}), 200
+
+
+@app.route('/api/admin/rejeitar_saque/<int:saque_id>', methods=['POST'])
+@require_login
+def admin_rejeitar_saque(saque_id):
+    if session['user'] != 'admin':
+        return jsonify({"error": "Acesso negado"}), 403
+    conn = get_db()
+    saque = conn.execute('SELECT * FROM saques WHERE id=? AND status=?', (saque_id, 'pendente')).fetchone()
+    if not saque:
+        conn.close()
+        return jsonify({"error": "Saque não encontrado ou já processado"}), 404
+    # Devolver o valor ao usuário
+    conn.execute('UPDATE users SET saldo=saldo+? WHERE username=?', (saque['valor'], saque['usuario']))
+    conn.execute('UPDATE saques SET status=? WHERE id=?', ('rejeitado', saque_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": f"Saque rejeitado. {saque['valor']} USDT devolvidos para {saque['usuario']}"}), 200
+
+
+@app.route('/api/admin/tarefas_concluidas')
+@require_login
+def admin_tarefas_concluidas():
+    if session['user'] != 'admin':
+        return jsonify({"error": "Acesso negado"}), 403
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT id,tipo,quantidade,nicho,status,trabalhador,recompensa,conta,proof FROM tarefas WHERE status=? ORDER BY data_criacao DESC',
+        ('concluida',)
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route('/api/admin/aprovar_tarefa/<int:tarefa_id>', methods=['POST'])
+@require_login
+def admin_aprovar_tarefa(tarefa_id):
+    if session['user'] != 'admin':
+        return jsonify({"error": "Acesso negado"}), 403
+    conn = get_db()
+    tarefa = conn.execute('SELECT * FROM tarefas WHERE id=? AND status=?', (tarefa_id, 'concluida')).fetchone()
+    if not tarefa:
+        conn.close()
+        return jsonify({"error": "Tarefa não encontrada ou já processada"}), 404
+    # Já foi paga quando concluída, só marcar como aprovada
+    conn.execute('UPDATE tarefas SET status=? WHERE id=?', ('aprovada', tarefa_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": f"Tarefa {tarefa_id} aprovada. Pagamento já foi realizado."}), 200
+
+
+@app.route('/api/admin/rejeitar_tarefa/<int:tarefa_id>', methods=['POST'])
+@require_login
+def admin_rejeitar_tarefa(tarefa_id):
+    if session['user'] != 'admin':
+        return jsonify({"error": "Acesso negado"}), 403
+    conn = get_db()
+    tarefa = conn.execute('SELECT * FROM tarefas WHERE id=? AND status=?', (tarefa_id, 'concluida')).fetchone()
+    if not tarefa:
+        conn.close()
+        return jsonify({"error": "Tarefa não encontrada ou já processada"}), 404
+    # Devolver tarefa para pendente e remover trabalhador
+    conn.execute('UPDATE tarefas SET status=?, trabalhador=NULL, proof=NULL WHERE id=?', ('pendente', tarefa_id))
+    # Devolver o dinheiro ao trabalhador
+    ganho = round(tarefa['recompensa'] * tarefa['quantidade'], 6)
+    conn.execute('UPDATE users SET saldo=saldo-? WHERE username=?', (ganho, tarefa['trabalhador']))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": f"Tarefa rejeitada. {ganho} USDT devolvidos do trabalhador {tarefa['trabalhador']}"}), 200
+
+
+@app.route('/api/admin/usuarios')
+@require_login
+def admin_usuarios():
+    if session['user'] != 'admin':
+        return jsonify({"error": "Acesso negado"}), 403
+    conn = get_db()
+    rows = conn.execute('SELECT username,saldo,is_worker,subscribed FROM users ORDER BY username').fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+
 # ---- RUN ----
 
 if __name__ == '__main__':
