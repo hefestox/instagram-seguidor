@@ -236,10 +236,8 @@ code {
         <button class="tab" onclick="showSection('contas', this)">Contas</button>
         <button class="tab" onclick="showSection('agendamento', this)">👷 Página Trabalhador</button>
         <button class="tab" onclick="showSection('anuncios', this)">📋 Página Contratante</button>
-        <button class="tab" onclick="showSection('marketplace', this)">Marketplace USDT</button>
         <button class="tab" onclick="showSection('pagamentos', this)">Pagamentos USDT</button>
         <button class="tab" onclick="showSection('verificacao', this)">Verificação</button>
-        <button class="tab" onclick="showSection('trabalhador', this)">Trabalhador</button>
         <button class="tab admin-only" id="admin-tab" onclick="showSection('admin', this)" style="display: none;">Admin</button>
     </nav>
     <main>
@@ -393,10 +391,6 @@ code {
             </div>
         </section>
 
-        <section id="marketplace" class="section">
-            <h2>⚡ Marketplace Inteligente de Tarefas</h2>
-            <div class="card">
-                <h3>💰 Contratar Engajamento para sua Conta</h3>
                 
                 <label><strong>📱 Selecione sua Conta Instagram:</strong></label>
                 <select id="conta-tarefa" style="width: 100%; padding: 10px; margin-bottom: 1rem; font-size: 16px;">
@@ -432,18 +426,6 @@ code {
                 <h3>🎁 Plano de Assinatura</h3>
                 <p>NichoPost Pro: $9.99 USDT/mês - Acesso ilimitado ao marketplace.</p>
                 <button onclick="assinar()" style="width: 100%; padding: 10px; background: #48bb78; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold;">Assinar</button>
-            </div>
-        </section>
-
-        <section id="trabalhador" class="section">
-            <h2>👷 Painel do Trabalhador</h2>
-            <div class="card">
-                <h3>Tarefas Disponíveis</h3>
-                <div id="tarefas-disponiveis"></div>
-            </div>
-            <div class="card">
-                <h3>Minhas Tarefas</h3>
-                <div id="minhas-tarefas"></div>
             </div>
         </section>
 
