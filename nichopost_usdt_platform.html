@@ -119,6 +119,108 @@
                 padding: 1rem;
             }
         }
+
+/* Payment Flow Styles */
+.payment-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.flow-step {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border-left: 4px solid #667eea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.step-icon {
+    font-size: 2rem;
+    margin-right: 1rem;
+    min-width: 2rem;
+}
+
+.step-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: #2d3748;
+    font-size: 1.1rem;
+}
+
+.step-content p {
+    margin: 0.25rem 0;
+    color: #4a5568;
+}
+
+.flow-arrow {
+    color: #667eea;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin: 0.5rem 0;
+}
+
+.payment-benefits {
+    background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.payment-benefits h4 {
+    margin: 0 0 1rem 0;
+    color: #2d3748;
+}
+
+.payment-benefits ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.payment-benefits li {
+    margin: 0.5rem 0;
+    color: #4a5568;
+}
+
+.qr-container {
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.qr-container img {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.qr-container p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+    color: #718096;
+}
+
+.wallet-notice {
+    background: #fed7d7;
+    border: 1px solid #fc8181;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.wallet-notice p {
+    margin: 0;
+    color: #c53030;
+    font-weight: 500;
+}
+
+code {
+    background: #e2e8f0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+}
     </style>
 </head>
 <body>
@@ -336,21 +438,66 @@
         </section>
 
         <section id="pagamentos" class="section">
-            <h2>Pagamentos USDT</h2>
+            <h2>💰 Sistema de Pagamentos USDT</h2>
             <div class="card">
-                <h3>Como Funciona</h3>
-                <p><strong>Fluxo de Pagamentos:</strong></p>
-                <ul>
-                    <li>💰 <strong>Assinaturas:</strong> R$ 9.99 USDT/mês → Sua Carteira</li>
-                    <li>📋 <strong>Tarefas Contratadas:</strong> Usuários pagam → Sua Carteira</li>
-                    <li>👷 <strong>Pagamentos a Trabalhadores:</strong> Seu saldo (de tarefas) → Trabalhadores</li>
-                </ul>
+                <h3>Como Funciona o Fluxo de Pagamentos</h3>
+                <p>O NichoPost utiliza USDT (Tether) como moeda principal para todas as transações, garantindo segurança e transparência em todas as operações.</p>
+
+                <div class="payment-flow">
+                    <div class="flow-step">
+                        <div class="step-icon">💰</div>
+                        <div class="step-content">
+                            <h4>Assinaturas Mensais</h4>
+                            <p>Clientes pagam <strong>R$ 9.99 USDT/mês</strong> por acesso à plataforma</p>
+                            <p class="flow-arrow">↓</p>
+                            <p><strong>Destino:</strong> Carteira do NichoPost</p>
+                        </div>
+                    </div>
+
+                    <div class="flow-step">
+                        <div class="step-icon">📋</div>
+                        <div class="step-content">
+                            <h4>Tarefas Contratadas</h4>
+                            <p>Usuários contratam tarefas de automação e pagam o valor correspondente</p>
+                            <p class="flow-arrow">↓</p>
+                            <p><strong>Destino:</strong> Carteira do NichoPost</p>
+                        </div>
+                    </div>
+
+                    <div class="flow-step">
+                        <div class="step-icon">👷</div>
+                        <div class="step-content">
+                            <h4>Pagamentos aos Trabalhadores</h4>
+                            <p>Trabalhadores recebem recompensas pelas tarefas concluídas</p>
+                            <p class="flow-arrow">↓</p>
+                            <p><strong>Origem:</strong> Saldo do NichoPost (proveniente das tarefas)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="payment-benefits">
+                    <h4>Benefícios do Sistema USDT</h4>
+                    <ul>
+                        <li>✅ Transações instantâneas e seguras</li>
+                        <li>✅ Taxas reduzidas comparadas a outras criptomoedas</li>
+                        <li>✅ Estabilidade de valor (1 USDT = 1 USD)</li>
+                        <li>✅ Compatibilidade com carteiras Ethereum</li>
+                        <li>✅ Transparência total em todas as operações</li>
+                    </ul>
+                </div>
             </div>
+
             <div class="card">
-                <h3>Endereço de Carteira</h3>
-                <p>Rede: Ethereum</p>
-                <p>Endereço: 0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd</p>
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd" alt="QR Code">
+                <h3>💳 Carteira Oficial do NichoPost</h3>
+                <p><strong>Rede:</strong> Ethereum (ERC-20)</p>
+                <p><strong>Endereço:</strong> <code>0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd</code></p>
+                <div class="qr-container">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd" alt="QR Code da Carteira NichoPost">
+                    <p>Escaneie para depositar USDT</p>
+                </div>
+                <div class="wallet-notice">
+                    <p><strong>⚠️ Importante:</strong> Envie apenas USDT para este endereço. Outras moedas podem ser perdidas permanentemente.</p>
+                </div>
             </div>
         </section>
 
