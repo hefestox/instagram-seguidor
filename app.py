@@ -64,7 +64,8 @@ def init_db():
             id INTEGER PRIMARY KEY,
             nome TEXT UNIQUE NOT NULL,
             seguidores INTEGER DEFAULT 0,
-            nicho TEXT
+            nicho TEXT,
+            usuario TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS agendamentos (
             id INTEGER PRIMARY KEY,
@@ -116,13 +117,13 @@ def init_db():
 
     if conn.execute('SELECT COUNT(*) FROM contas').fetchone()[0] == 0:
         for c in [
-            ('@conta_biblica',     1250, 'biblico'),
-            ('@futebol_news',      3400, 'futebol'),
-            ('@politica_atual',     890, 'politica'),
-            ('@entretenimento_fun',2100, 'entretenimento'),
-            ('@pump_sniper',        500, 'financas'),
+            ('@conta_biblica',     1250, 'biblico', 'admin'),
+            ('@futebol_news',      3400, 'futebol', 'admin'),
+            ('@politica_atual',     890, 'politica', 'admin'),
+            ('@entretenimento_fun',2100, 'entretenimento', 'admin'),
+            ('@pump_sniper',        500, 'financas', 'admin'),
         ]:
-            conn.execute('INSERT INTO contas (nome,seguidores,nicho) VALUES(?,?,?)', c)
+            conn.execute('INSERT INTO contas (nome,seguidores,nicho,usuario) VALUES(?,?,?,?)', c)
 
     if conn.execute('SELECT COUNT(*) FROM agendamentos').fetchone()[0] == 0:
         for a in [
@@ -343,10 +344,10 @@ def api_config():
 @require_login
 def api_dashboard():
     conn = get_db()
-    num_contas  = conn.execute('SELECT COUNT(*) FROM contas').fetchone()[0]
-    num_posts   = conn.execute('SELECT COUNT(*) FROM agendamentos').fetchone()[0]
-    orcamento   = conn.execute('SELECT COALESCE(SUM(custo),0) FROM campanhas').fetchone()[0]
-    num_tarefas = conn.execute("SELECT COUNT(*) FROM tarefas WHERE status='pendente'").fetchone()[0]
+    num_contas  = conn.execute('SELECT COUNT(*) FROM contas WHERE usuario=?', (session['user'],)).fetchone()[0]
+    num_posts   = conn.execute('SELECT COUNT(*) FROM agendamentos WHERE conta IN (SELECT nome FROM contas WHERE usuario=?)', (session['user'],)).fetchone()[0]
+    orcamento   = conn.execute('SELECT COALESCE(SUM(custo),0) FROM campanhas WHERE conta IN (SELECT nome FROM contas WHERE usuario=?)', (session['user'],)).fetchone()[0]
+    num_tarefas = conn.execute("SELECT COUNT(*) FROM tarefas WHERE status='pendente' AND conta IN (SELECT nome FROM contas WHERE usuario=?)", (session['user'],)).fetchone()[0]
     conn.close()
     return jsonify({
         "contas": num_contas,
@@ -370,14 +371,14 @@ def api_contas():
             conn.close()
             return jsonify({"error": "nome e nicho sao obrigatorios"}), 400
         try:
-            conn.execute('INSERT INTO contas (nome,nicho) VALUES(?,?)', (nome, nicho))
+            conn.execute('INSERT INTO contas (nome,nicho,usuario) VALUES(?,?,?)', (nome, nicho, session['user']))
             conn.commit()
             conn.close()
             return jsonify({"message": "Conta adicionada"}), 201
         except sqlite3.IntegrityError:
             conn.close()
             return jsonify({"error": "Conta ja existe"}), 409
-    rows = conn.execute('SELECT nome,seguidores,nicho FROM contas').fetchall()
+    rows = conn.execute('SELECT nome,seguidores,nicho FROM contas WHERE usuario=?', (session['user'],)).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
@@ -396,11 +397,18 @@ def api_agendamentos():
         if not conta or not conteudo or not data_pub:
             conn.close()
             return jsonify({"error": "conta, conteudo e data sao obrigatorios"}), 400
+        
+        # Verificar se a conta pertence ao usuário
+        conta_existe = conn.execute('SELECT COUNT(*) FROM contas WHERE nome=? AND usuario=?', (conta, session['user'])).fetchone()[0]
+        if conta_existe == 0:
+            conn.close()
+            return jsonify({"error": "Conta nao encontrada ou nao pertence ao usuario"}), 403
+        
         conn.execute('INSERT INTO agendamentos (conta,conteudo,data) VALUES(?,?,?)', (conta, conteudo, data_pub))
         conn.commit()
         conn.close()
         return jsonify({"message": "Post agendado"}), 201
-    rows = conn.execute('SELECT conta,conteudo,data FROM agendamentos').fetchall()
+    rows = conn.execute('SELECT conta,conteudo,data FROM agendamentos WHERE conta IN (SELECT nome FROM contas WHERE usuario=?)', (session['user'],)).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
@@ -544,7 +552,8 @@ def api_tarefas():
 def tarefas_disponiveis():
     conn = get_db()
     rows = conn.execute(
-        "SELECT id,tipo,quantidade,conta,nicho,recompensa,valor_total FROM tarefas WHERE trabalhador IS NULL AND status='pendente' ORDER BY data_criacao DESC"
+        "SELECT id,tipo,quantidade,conta,nicho,recompensa,valor_total FROM tarefas WHERE trabalhador IS NULL AND status='pendente' AND conta IN (SELECT conta FROM contas WHERE usuario=?) ORDER BY data_criacao DESC",
+        (session['user'],)
     ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
