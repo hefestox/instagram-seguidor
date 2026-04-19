@@ -234,8 +234,8 @@ code {
         <button class="tab" onclick="showSection('nichos', this)">Nichos</button>
         <button class="tab" onclick="showSection('conteudo', this)">Conteúdo</button>
         <button class="tab" onclick="showSection('contas', this)">Contas</button>
-        <button class="tab" onclick="showSection('agendamento', this)">Agendamento</button>
-        <button class="tab" onclick="showSection('anuncios', this)">Anúncios</button>
+        <button class="tab" onclick="showSection('agendamento', this)">👷 Página Trabalhador</button>
+        <button class="tab" onclick="showSection('anuncios', this)">📋 Página Contratante</button>
         <button class="tab" onclick="showSection('marketplace', this)">Marketplace USDT</button>
         <button class="tab" onclick="showSection('pagamentos', this)">Pagamentos USDT</button>
         <button class="tab" onclick="showSection('verificacao', this)">Verificação</button>
@@ -327,44 +327,70 @@ code {
         </section>
 
         <section id="agendamento" class="section">
-            <h2>Agendamento de Posts</h2>
+            <h2>👷 Página do Trabalhador - Tarefas Disponíveis</h2>
             <div class="card">
-                <h3>Agendar Novo Post</h3>
-                <label>Conta:</label>
-                <select id="conta-agendamento"></select>
-                <label>Data e Hora:</label>
-                <input type="datetime-local" id="data-agendamento">
-                <label>Conteúdo:</label>
-                <textarea id="conteudo-agendamento" placeholder="Digite o texto do post..."></textarea>
-                <button onclick="agendarPost()">Agendar Post</button>
+                <h3>💼 Tarefas Disponíveis para Executar</h3>
+                <p>Aqui você encontra todas as tarefas criadas por contratantes. Escolha uma tarefa disponível e comece a ganhar USDT!</p>
+                <div id="lista-tarefas-disponiveis" class="grid">
+                    <!-- Tarefas disponíveis serão carregadas aqui -->
+                </div>
             </div>
-            <div id="lista-agendamentos"></div>
+            <div class="card">
+                <h3>📋 Minhas Tarefas em Andamento</h3>
+                <div id="minhas-tarefas" class="grid">
+                    <!-- Tarefas que estou executando -->
+                </div>
+            </div>
         </section>
 
         <section id="anuncios" class="section">
-            <h2>Campanhas de Anúncios</h2>
+            <h2>📋 Página do Contratante - Criar Tarefas</h2>
             <div class="card">
-                <h3>Criar Nova Campanha</h3>
-                <label>Nome da Campanha:</label>
-                <input type="text" id="nome-campanha" placeholder="Ex: Campanha Bíblica">
-                <label>Orçamento (USD):</label>
-                <input type="number" id="orcamento-campanha" placeholder="100">
-                <label>Nicho Alvo:</label>
-                <select id="nicho-campanha">
-                    <option value="biblico">biblico</option>
-                    <option value="futebol">futebol</option>
-                    <option value="politica">politica</option>
-                    <option value="entretenimento">entretenimento</option>
-                    <option value="moda">moda</option>
-                    <option value="gastronomia">gastronomia</option>
-                    <option value="fitness">fitness</option>
-                    <option value="financas">financas</option>
-                    <option value="games">games</option>
-                    <option value="viagem">viagem</option>
+                <h3>💰 Contratar Engajamento para sua Conta</h3>
+                
+                <label><strong>📱 Selecione sua Conta Instagram:</strong></label>
+                <select id="conta-tarefa" style="width: 100%; padding: 10px; margin-bottom: 1rem; font-size: 16px;">
+                    <option value="">-- Escolha uma conta --</option>
                 </select>
-                <button onclick="criarCampanha()">Criar Campanha</button>
+                
+                <label><strong>🎯 Tipo de Engajamento:</strong></label>
+                <select id="tipo-tarefa" style="width: 100%; padding: 10px; margin-bottom: 1rem; font-size: 16px;">
+                    <option value="curtir">👍 Curtidas - 0.001 USDT cada</option>
+                    <option value="comentar">💬 Comentários - 0.002 USDT cada</option>
+                    <option value="seguidor">👥 Seguidores - 0.003 USDT cada</option>
+                    <option value="visualizacao">👁️ Visualizações - 0.0005 USDT cada</option>
+                </select>
+                
+                <label><strong>📊 Quantidade Desejada:</strong></label>
+                <input type="number" id="quantidade-tarefa" placeholder="Ex: 100" min="1" style="width: 100%; padding: 10px; margin-bottom: 1rem; font-size: 16px;">
+                
+                <label><strong>🎨 Nicho da Conta:</strong></label>
+                <select id="nicho-tarefa" style="width: 100%; padding: 10px; margin-bottom: 1rem; font-size: 16px;">
+                    <option value="biblico">📖 Bíblico</option>
+                    <option value="futebol">⚽ Futebol</option>
+                    <option value="politica">🏛️ Política</option>
+                    <option value="entretenimento">🎬 Entretenimento</option>
+                    <option value="moda">👗 Moda</option>
+                    <option value="gastronomia">🍽️ Gastronomia</option>
+                    <option value="fitness">💪 Fitness</option>
+                    <option value="financas">💼 Finanças</option>
+                    <option value="games">🎮 Games</option>
+                    <option value="viagem">✈️ Viagem</option>
+                </select>
+                
+                <div id="preco-preview" style="background: #f0f8ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: none;">
+                    <strong>💵 Custo Total Estimado:</strong> <span id="custo-total">0.00</span> USDT
+                </div>
+                
+                <button onclick="calcularPreco()" style="width: 100%; padding: 12px; background: #ffa500; color: white; border: none; border-radius: 8px; font-size: 16px; margin-bottom: 1rem;">📊 Calcular Preço</button>
+                <button onclick="contratarTarefa()" style="width: 100%; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px;">🚀 Contratar Tarefa</button>
             </div>
-            <div id="lista-campanhas" class="grid"></div>
+            <div class="card">
+                <h3>📋 Minhas Tarefas Contratadas</h3>
+                <div id="minhas-tarefas-contratadas" class="grid">
+                    <!-- Tarefas que contratei -->
+                </div>
+            </div>
         </section>
 
         <section id="marketplace" class="section">
@@ -381,7 +407,7 @@ code {
                 <select id="tipo-tarefa" onchange="atualizarPrecos()" style="width: 100%; padding: 10px; margin-bottom: 1rem; font-size: 16px;">
                     <option value="curtida">❤️ Curtidas - 0.001 USDT cada</option>
                     <option value="comentario">💬 Comentários - 0.002 USDT cada</option>
-                    <option value="seguidor">👥 Seguidores - 0.003 USDT cada</option>
+                    <option value="seguir">👥 Seguidores - 0.003 USDT cada</option>
                     <option value="story">📖 Stories - 0.0005 USDT cada</option>
                 </select>
                 
@@ -554,6 +580,14 @@ code {
             const section = document.getElementById(sectionId);
             if (section) section.classList.add('active');
             if (el) el.classList.add('active');
+            
+            // Carregar conteúdo específico da seção
+            if (sectionId === 'agendamento') {
+                carregarTarefasDisponiveis();
+                carregarMinhasTarefas();
+            } else if (sectionId === 'anuncios') {
+                carregarMinhasTarefasContratadas();
+            }
         }
 
         function gerarConteudo() {
@@ -678,7 +712,7 @@ code {
             fetch('/api/tarefas/disponiveis')
                 .then(response => response.json())
                 .then(tarefas => {
-                    const div = document.getElementById('tarefas-disponiveis');
+                    const div = document.getElementById('lista-tarefas-disponiveis');
                     div.innerHTML = '';
                     
                     if (tarefas.length === 0) {
@@ -795,7 +829,7 @@ code {
         const precos = {
             'curtida': 0.001,
             'comentario': 0.002,
-            'seguidor': 0.003,
+            'seguir': 0.003,
             'story': 0.0005
         };
 

@@ -201,7 +201,10 @@ box-shadow:0 2px 12px rgba(0,0,0,.1)}
 h2{margin:0 0 1.5rem;font-size:1.2rem;color:#111}
 input[type=text],input[type=password]{width:100%;padding:9px;margin:3px 0 12px;
 border:1px solid #ddd;border-radius:7px;box-sizing:border-box;font-size:14px}
-label{font-size:13px;display:flex;align-items:center;gap:7px;margin-bottom:14px;cursor:pointer}
+.role-options{margin:15px 0}
+.role-option{display:flex;align-items:center;gap:7px;margin-bottom:10px}
+.role-option input[type=radio]{margin:0}
+.role-option label{font-size:13px;cursor:pointer;margin:0}
 button{width:100%;padding:10px;background:#378ADD;color:#fff;border:none;
 border-radius:7px;cursor:pointer;font-size:14px;font-weight:500}
 button:hover{background:#185FA5}
@@ -215,7 +218,17 @@ __ERROR__
 <form method="post">
 <input type="text" name="username" placeholder="Usuário" required>
 <input type="password" name="password" placeholder="Senha" required>
-<label><input type="checkbox" name="is_worker"> Quero trabalhar e ganhar USDT</label>
+<div class="role-options">
+    <p style="font-size:13px;margin:0 0 10px;color:#555">Escolha seu perfil:</p>
+    <div class="role-option">
+        <input type="radio" id="worker" name="role" value="worker" required>
+        <label for="worker">👷 Quero ser trabalhador e ganhar USDT executando tarefas</label>
+    </div>
+    <div class="role-option">
+        <input type="radio" id="contractor" name="role" value="contractor" required>
+        <label for="contractor">📋 Quero ser contratante e criar tarefas para terceiros</label>
+    </div>
+</div>
 <button type="submit">Registrar</button>
 </form>
 <p><a href="/login">Já tenho conta</a></p>
@@ -248,10 +261,11 @@ def login():
 def register():
     error = ''
     if request.method == 'POST':
-        username  = request.form.get('username', '').strip()
-        password  = request.form.get('password', '')
-        is_worker = 1 if 'is_worker' in request.form else 0
-        if not username or not password:
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        role = request.form.get('role', '')
+        is_worker = 1 if role == 'worker' else 0
+        if not username or not password or not role:
             error = '<p class="err">Preencha todos os campos.</p>'
         else:
             conn = get_db()
