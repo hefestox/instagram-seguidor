@@ -20,7 +20,8 @@ PRECOS = {
     'curtida':    0.001,
     'comentario': 0.002,
     'seguir':     0.003,
-    'stories':    0.004,
+    'stories':    0.0005,
+    'story':      0.0005,
 }
 
 nichos = ["biblico", "futebol", "politica", "entretenimento", "moda",
@@ -507,7 +508,7 @@ def api_tarefas():
             return jsonify({"error": "tipo e conta sao obrigatorios"}), 400
         if tipo not in PRECOS:
             conn.close()
-            return jsonify({"error": "Tipo invalido. Use: curtida, comentario, seguir, stories"}), 400
+            return jsonify({"error": "Tipo invalido. Use: curtida, comentario, seguir, stories ou story"}), 400
 
         recompensa  = PRECOS[tipo]
         subtotal    = recompensa * quantidade

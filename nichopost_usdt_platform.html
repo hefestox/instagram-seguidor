@@ -124,20 +124,20 @@
 <body>
     <header>
         <h1>NichoPost - Plataforma de Automação Instagram com USDT</h1>
-        <p>Usuário: {{ user }} | Saldo: {{ "%.2f"|format(saldo) }} USDT | Assinado: {% if subscribed %}Sim{% else %}Não{% endif %}</p>
+        <p id="user-info">Usuário: carregando... | Saldo: 0.00 USDT | Assinado: Não</p>
         <a href="/logout">Logout</a>
     </header>
     <nav>
-        <button class="tab active" onclick="showSection('dashboard')">Dashboard</button>
-        <button class="tab" onclick="showSection('nichos')">Nichos</button>
-        <button class="tab" onclick="showSection('conteudo')">Conteúdo</button>
-        <button class="tab" onclick="showSection('contas')">Contas</button>
-        <button class="tab" onclick="showSection('agendamento')">Agendamento</button>
-        <button class="tab" onclick="showSection('anuncios')">Anúncios</button>
-        <button class="tab" onclick="showSection('marketplace')">Marketplace USDT</button>
-        <button class="tab" onclick="showSection('pagamentos')">Pagamentos USDT</button>
-        <button class="tab" onclick="showSection('verificacao')">Verificação</button>
-        <button class="tab" onclick="showSection('trabalhador')">Trabalhador</button>
+        <button class="tab active" onclick="showSection('dashboard', this)">Dashboard</button>
+        <button class="tab" onclick="showSection('nichos', this)">Nichos</button>
+        <button class="tab" onclick="showSection('conteudo', this)">Conteúdo</button>
+        <button class="tab" onclick="showSection('contas', this)">Contas</button>
+        <button class="tab" onclick="showSection('agendamento', this)">Agendamento</button>
+        <button class="tab" onclick="showSection('anuncios', this)">Anúncios</button>
+        <button class="tab" onclick="showSection('marketplace', this)">Marketplace USDT</button>
+        <button class="tab" onclick="showSection('pagamentos', this)">Pagamentos USDT</button>
+        <button class="tab" onclick="showSection('verificacao', this)">Verificação</button>
+        <button class="tab" onclick="showSection('trabalhador', this)">Trabalhador</button>
     </nav>
     <main>
         <section id="dashboard" class="section active">
@@ -184,9 +184,16 @@
             <h2>Gerador de Conteúdo</h2>
             <label for="nicho-select">Escolha o Nicho:</label>
             <select id="nicho-select">
-                {% for nicho in nichos %}
-                <option value="{{ nicho }}">{{ nicho.capitalize() }}</option>
-                {% endfor %}
+                <option value="biblico">biblico</option>
+                <option value="futebol">futebol</option>
+                <option value="politica">politica</option>
+                <option value="entretenimento">entretenimento</option>
+                <option value="moda">moda</option>
+                <option value="gastronomia">gastronomia</option>
+                <option value="fitness">fitness</option>
+                <option value="financas">financas</option>
+                <option value="games">games</option>
+                <option value="viagem">viagem</option>
             </select>
             <button onclick="gerarConteudo()">Gerar Post</button>
             <div id="conteudo-gerado" class="card" style="margin-top: 1rem;"></div>
@@ -200,21 +207,20 @@
                 <input type="text" id="nova-conta" placeholder="@exemplo">
                 <label>Nicho:</label>
                 <select id="nicho-conta">
-                    {% for nicho in nichos %}
-                    <option value="{{ nicho }}">{{ nicho.capitalize() }}</option>
-                    {% endfor %}
+                    <option value="biblico">biblico</option>
+                    <option value="futebol">futebol</option>
+                    <option value="politica">politica</option>
+                    <option value="entretenimento">entretenimento</option>
+                    <option value="moda">moda</option>
+                    <option value="gastronomia">gastronomia</option>
+                    <option value="fitness">fitness</option>
+                    <option value="financas">financas</option>
+                    <option value="games">games</option>
+                    <option value="viagem">viagem</option>
                 </select>
                 <button onclick="adicionarConta()">Adicionar Conta</button>
             </div>
-            <div id="lista-contas" class="grid">
-                {% for conta in contas %}
-                <div class="card">
-                    <h3>{{ conta.nome }}</h3>
-                    <p>Seguidores: {{ conta.seguidores }} | Nicho: {{ conta.nicho }}</p>
-                    <button onclick="editarConta('{{ conta.nome }}')">Editar</button>
-                </div>
-                {% endfor %}
-            </div>
+            <div id="lista-contas" class="grid"></div>
         </section>
 
         <section id="agendamento" class="section">
@@ -222,26 +228,14 @@
             <div class="card">
                 <h3>Agendar Novo Post</h3>
                 <label>Conta:</label>
-                <select id="conta-agendamento">
-                    <option value="@conta_biblica">@conta_biblica</option>
-                    <option value="@futebol_news">@futebol_news</option>
-                    <option value="@politica_atual">@politica_atual</option>
-                    <option value="@entretenimento_fun">@entretenimento_fun</option>
-                    <option value="@pump_sniper">@pump_sniper</option>
-                </select>
+                <select id="conta-agendamento"></select>
                 <label>Data e Hora:</label>
                 <input type="datetime-local" id="data-agendamento">
                 <label>Conteúdo:</label>
                 <textarea id="conteudo-agendamento" placeholder="Digite o texto do post..."></textarea>
                 <button onclick="agendarPost()">Agendar Post</button>
             </div>
-            <div id="lista-agendamentos">
-                {% for agendamento in agendamentos %}
-                <div class="card">
-                    <p><strong>{{ agendamento.conta }}:</strong> {{ agendamento.conteudo }} agendado para {{ agendamento.data }}</p>
-                </div>
-                {% endfor %}
-            </div>
+            <div id="lista-agendamentos"></div>
         </section>
 
         <section id="anuncios" class="section">
@@ -254,20 +248,20 @@
                 <input type="number" id="orcamento-campanha" placeholder="100">
                 <label>Nicho Alvo:</label>
                 <select id="nicho-campanha">
-                    {% for nicho in nichos %}
-                    <option value="{{ nicho }}">{{ nicho.capitalize() }}</option>
-                    {% endfor %}
+                    <option value="biblico">biblico</option>
+                    <option value="futebol">futebol</option>
+                    <option value="politica">politica</option>
+                    <option value="entretenimento">entretenimento</option>
+                    <option value="moda">moda</option>
+                    <option value="gastronomia">gastronomia</option>
+                    <option value="fitness">fitness</option>
+                    <option value="financas">financas</option>
+                    <option value="games">games</option>
+                    <option value="viagem">viagem</option>
                 </select>
                 <button onclick="criarCampanha()">Criar Campanha</button>
             </div>
-            <div id="lista-campanhas" class="grid">
-                {% for campanha in campanhas %}
-                <div class="card">
-                    <h3>{{ campanha.nome }}</h3>
-                    <p>Alcance: {{ campanha.alcance }} | Cliques: {{ campanha.cliques }} | Custo: ${{ campanha.custo }}</p>
-                </div>
-                {% endfor %}
-            </div>
+            <div id="lista-campanhas" class="grid"></div>
         </section>
 
         <section id="marketplace" class="section">
@@ -391,11 +385,12 @@
     </main>
 
     <script>
-        function showSection(sectionId) {
+        function showSection(sectionId, el) {
             document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
-            event.target.classList.add('active');
+            const section = document.getElementById(sectionId);
+            if (section) section.classList.add('active');
+            if (el) el.classList.add('active');
         }
 
         function gerarConteudo() {
@@ -404,27 +399,10 @@
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('conteudo-gerado').innerHTML = `<p>${data.conteudo}</p>`;
+                })
+                .catch(() => {
+                    document.getElementById('conteudo-gerado').innerHTML = '<p>Erro ao gerar conteúdo.</p>';
                 });
-        }
-
-        function calcular() {
-            const curtidas = parseInt(document.getElementById('curtidas').value) || 0;
-            const comentarios = parseInt(document.getElementById('comentarios').value) || 0;
-            const seguidores = parseInt(document.getElementById('seguidores').value) || 0;
-            const stories = parseInt(document.getElementById('stories').value) || 0;
-            fetch('/api/marketplace/calcular', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ curtidas, comentarios, seguidores, stories })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('custo-curtidas').textContent = data.custo_curtidas;
-                document.getElementById('custo-comentarios').textContent = data.custo_comentarios;
-                document.getElementById('custo-seguidores').textContent = data.custo_seguidores;
-                document.getElementById('custo-stories').textContent = data.custo_stories;
-                document.getElementById('total').textContent = data.total;
-            });
         }
 
         function adicionarConta() {
@@ -437,9 +415,12 @@
                     body: JSON.stringify({ nome, nicho })
                 })
                 .then(response => response.json())
-                .then(() => {
-                    alert('Conta adicionada!');
+                .then(data => {
+                    alert(data.message || 'Conta adicionada!');
                     location.reload();  // Recarregar para atualizar a lista
+                })
+                .catch(() => {
+                    alert('Erro ao adicionar conta.');
                 });
             }
         }
@@ -477,41 +458,15 @@
                     body: JSON.stringify({ nome, orcamento: parseFloat(orcamento), nicho })
                 })
                 .then(response => response.json())
-                .then(() => {
-                    alert('Campanha criada!');
+                .then(data => {
+                    alert(data.message || 'Campanha criada!');
                     location.reload();
+                })
+                .catch(() => {
+                    alert('Erro ao criar campanha.');
                 });
             }
         }
-
-        // Inicializar cálculo
-        calcular();
-
-        // Carregar contas para o select de agendamento
-        window.onload = function() {
-            fetch('/api/contas')
-                .then(response => response.json())
-                .then(contas => {
-                    const select = document.getElementById('conta-agendamento');
-                    contas.forEach(conta => {
-                        const option = document.createElement('option');
-                        option.value = conta.nome;
-                        option.textContent = conta.nome;
-                        select.appendChild(option);
-                    });
-                });
-            // Carregar métricas do dashboard
-            fetch('/api/dashboard')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('metric-contas').textContent = data.contas;
-                    document.getElementById('metric-posts').textContent = data.posts_agendados;
-                    document.getElementById('metric-orcamento').textContent = '$' + data.orcamento_anuncios;
-                    document.getElementById('metric-tarefas').textContent = data.tarefas_marketplace;
-                });
-            // Carregar tarefas pendentes
-            carregarTarefas();
-        };
 
         function carregarTarefas() {
             fetch('/api/tarefas')
@@ -544,27 +499,6 @@
             .then(data => {
                 alert(data.message || data.error);
                 carregarTarefas();
-            });
-        }
-
-        function contratarTarefa() {
-            const curtidas = parseInt(document.getElementById('curtidas').value) || 0;
-            const comentarios = parseInt(document.getElementById('comentarios').value) || 0;
-            const seguidores = parseInt(document.getElementById('seguidores').value) || 0;
-            const stories = parseInt(document.getElementById('stories').value) || 0;
-            const total = parseFloat(document.getElementById('total').textContent);
-            fetch('/api/tarefas', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ curtidas, comentarios, seguidores, stories, nicho: 'geral', total })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message || data.error);
-                if (data.message) {
-                    // Recarregar tarefas disponíveis
-                    carregarTarefasDisponiveis();
-                }
             });
         }
 
@@ -790,7 +724,7 @@
                                 <p><strong>${icone} Conta:</strong> ${tarefa.conta}</p>
                                 <p><strong>Tipo:</strong> ${tarefa.tipo}</p>
                                 <p><strong>Quantidade:</strong> ${tarefa.quantidade}</p>
-                                <p><strong>Pagamento Total:</strong> <span style=\"color: #48bb78; font-weight: bold;\">${tarefa.total.toFixed(4)} USDT</span></p>
+                                <p><strong>Pagamento Total:</strong> <span style=\"color: #48bb78; font-weight: bold;\">${tarefa.valor_total.toFixed(4)} USDT</span></p>
                                 <p><strong>Executor:</strong> ${tarefa.trabalhador ? '<span style=\"background: #48bb78; color: white; padding: 2px 8px; border-radius: 3px;\">' + tarefa.trabalhador + '</span>' : '<span style=\"color: #999;\">⏳ Aguardando</span>'}</p>
                                 <p><strong>Status:</strong> 
                                     <span style=\"${{'pendente': 'color: #f59e0b;', 'em_andamento': 'color: #3b82f6;', 'concluida': 'color: #10b981;'}[tarefa.status] || 'color: #666;'}\">
@@ -871,6 +805,20 @@
 
         // Atualizar window.onload para incluir carregamento do trabalhador
         window.onload = function() {
+            // Carregar dados do usuário
+            fetch('/api/me')
+                .then(response => response.json())
+                .then(data => {
+                    const info = document.getElementById('user-info');
+                    if (info) {
+                        info.textContent = `Usuário: ${data.user} | Saldo: ${data.saldo.toFixed(2)} USDT | Assinado: ${data.subscribed ? 'Sim' : 'Não'}`;
+                    }
+                })
+                .catch(() => {
+                    const info = document.getElementById('user-info');
+                    if (info) info.textContent = 'Usuário: erro ao carregar | Saldo: 0.00 USDT | Assinado: n/a';
+                });
+
             // Carregar contas para marketplace
             fetch('/api/contas')
                 .then(response => response.json())
@@ -913,7 +861,7 @@
             // Carregar minhas tarefas contratadas
             carregarMinhasTarefasContratadas();
             // Atualizar valores quando mudar quantidade ou recompensa
-            calcularRecompensa();
+            atualizarPrecos();
             // Calcular valor líquido de saque
             document.getElementById('valor-saque').addEventListener('input', function() {
                 const valor = parseFloat(this.value) || 0;
