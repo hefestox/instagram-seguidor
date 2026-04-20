@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NichoPost - Plataforma USDT</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;color:#333}
+header{background:rgba(255,255,255,.95);padding:1rem;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+header h1{color:#4a5568;font-size:1.3rem;margin-bottom:.3rem}
+#user-info{font-size:.9rem;color:#666;margin-bottom:.3rem}
+header a{color:#667eea;text-decoration:none;font-size:.85rem}
+nav{background:#fff;padding:.5rem;display:flex;justify-content:center;flex-wrap:wrap;gap:.25rem;box-shadow:0 1px 5px rgba(0,0,0,.1)}
+nav button{background:#e2e8f0;border:none;padding:.6rem 1.1rem;cursor:pointer;border-radius:8px;font-weight:500;font-size:.85rem;transition:all .2s}
+nav button.active{background:#667eea;color:#fff}
+nav button:hover{background:#cbd5e0}
+main{padding:1.5rem;max-width:1100px;margin:0 auto}
+.section{display:none;background:#fff;border-radius:12px;padding:1.5rem;box-shadow:0 4px 20px rgba(0,0,0,.1);margin-bottom:1.5rem}
+.section.active{display:block}
+h2{color:#2d3748;border-bottom:2px solid #667eea;padding-bottom:.5rem;margin-bottom:1rem}
+h3{color:#4a5568;margin:1rem 0 .5rem}
+.card{background:#f7fafc;border-radius:8px;padding:1rem;margin:.75rem 0;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1rem}
+.metric{text-align:center;font-size:2rem;font-weight:bold;color:#667eea}
+.metric small{display:block;font-size:.8rem;color:#718096;font-weight:normal;margin-top:.2rem}
+label{display:block;margin:.4rem 0 .15rem;font-weight:500;font-size:.9rem;color:#4a5568}
+input,select,textarea{width:100%;padding:.5rem .75rem;border:1px solid #e2e8f0;border-radius:6px;font-size:.9rem;margin-bottom:.4rem}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#667eea}
+button{background:#667eea;color:#fff;border:none;padding:.5rem 1rem;border-radius:6px;cursor:pointer;font-size:.9rem;transition:background .2s}
+button:hover{background:#5a67d8}
+.btn-green{background:#48bb78}.btn-green:hover{background:#38a169}
+.btn-red{background:#f56565}.btn-red:hover{background:#e53e3e}
+.btn-yellow{background:#f6ad55}.btn-yellow:hover{background:#ed8936}
+.btn-full{width:100%;padding:.75rem;font-size:1rem;font-weight:600;margin-top:.4rem}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600}
+.bg{background:#bee3f8;color:#2b6cb0}.gy{background:#fefcbf;color:#744210}
+.gg{background:#c6f6d5;color:#276749}.gr{background:#fed7d7;color:#c53030}
+code{background:#e2e8f0;padding:.2rem .4rem;border-radius:4px;font-family:monospace;word-break:break-all;font-size:.82rem}
+.info-box{background:#ebf8ff;border-left:4px solid #3182ce;border-radius:6px;padding:.9rem;margin:.6rem 0;font-size:.9rem}
+.warn-box{background:#fffbeb;border-left:4px solid #d69e2e;border-radius:6px;padding:.9rem;margin:.6rem 0;font-size:.9rem}
+.ok-box{background:#f0fff4;border-left:4px solid #38a169;border-radius:6px;padding:.9rem;margin:.6rem 0;font-size:.9rem}
+.task-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;background:#f7fafc;border-radius:8px;padding:.9rem;margin:.5rem 0;border-left:4px solid #667eea}
+.task-row p{margin:.15rem 0;font-size:.88rem}
+@media(max-width:600px){.task-row{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>NichoPost — Plataforma Instagram com USDT</h1>
+  <p id="user-info">Carregando...</p>
+  <a href="/logout">Sair da conta</a>
+</header>
+
+<nav>
+  <button class="tab active" onclick="show('dashboard',this)">📊 Dashboard</button>
+  <button class="tab" onclick="show('nichos',this)">🎯 Nichos</button>
+  <button class="tab" onclick="show('conteudo',this)">✍️ Conteúdo</button>
+  <button class="tab" onclick="show('contas',this)">📱 Contas</button>
+  <button class="tab" onclick="show('trabalhador',this)">👷 Trabalhar</button>
+  <button class="tab" onclick="show('contratante',this)">📋 Contratar</button>
+  <button class="tab" onclick="show('saque',this)">💸 Saque</button>
+  <button class="tab" onclick="show('pagamentos',this)">💰 Pagamentos</button>
+  <button class="tab" id="tab-admin" onclick="show('admin',this)" style="display:none;background:#fed7d7;color:#c53030">⚡ Admin</button>
+</nav>
+
+<main>
+
+<!-- DASHBOARD -->
+<section id="dashboard" class="section active">
+  <h2>Dashboard Geral</h2>
+  <div class="grid">
+    <div class="card"><div class="metric" id="m-contas">—</div><small>Contas Gerenciadas</small></div>
+    <div class="card"><div class="metric" id="m-posts">—</div><small>Posts Agendados</small></div>
+    <div class="card"><div class="metric" id="m-orc">—</div><small>Orçamento Anúncios</small></div>
+    <div class="card"><div class="metric" id="m-tar">—</div><small>Tarefas Disponíveis</small></div>
+  </div>
+  <div class="info-box">Bem-vindo ao NichoPost! Gerencie contas, contrate engajamento e ganhe USDT realizando tarefas.</div>
+</section>
+
+<!-- NICHOS -->
+<section id="nichos" class="section">
+  <h2>10 Nichos Disponíveis</h2>
+  <div class="grid">
+    <div class="card">✝️ <strong>Bíblico</strong><br><small>Versículos, reflexões, fé</small></div>
+    <div class="card">⚽ <strong>Futebol</strong><br><small>Resultados, análises, memes</small></div>
+    <div class="card">🏛️ <strong>Política</strong><br><small>Notícias, debates, análises</small></div>
+    <div class="card">🎬 <strong>Entretenimento</strong><br><small>Filmes, séries, celebridades</small></div>
+    <div class="card">👗 <strong>Moda e Beleza</strong><br><small>Looks, tendências, dicas</small></div>
+    <div class="card">🍕 <strong>Gastronomia</strong><br><small>Receitas, restaurantes, food</small></div>
+    <div class="card">💪 <strong>Fitness e Saúde</strong><br><small>Treinos, dieta, bem-estar</small></div>
+    <div class="card">💰 <strong>Finanças e Cripto</strong><br><small>Investimentos, USDT, DeFi</small></div>
+    <div class="card">🎮 <strong>Games</strong><br><small>Gameplay, eSports, reviews</small></div>
+    <div class="card">✈️ <strong>Viagem e Lifestyle</strong><br><small>Destinos, dicas, fotos</small></div>
+  </div>
+</section>
+
+<!-- CONTEÚDO -->
+<section id="conteudo" class="section">
+  <h2>Gerador de Conteúdo</h2>
+  <div class="card">
+    <h3>Gerar Post</h3>
+    <label>Nicho:</label>
+    <select id="nicho-sel">
+      <option value="biblico">✝️ Bíblico</option><option value="futebol">⚽ Futebol</option>
+      <option value="politica">🏛️ Política</option><option value="entretenimento">🎬 Entretenimento</option>
+      <option value="moda">👗 Moda</option><option value="gastronomia">🍕 Gastronomia</option>
+      <option value="fitness">💪 Fitness</option><option value="financas">💰 Finanças</option>
+      <option value="games">🎮 Games</option><option value="viagem">✈️ Viagem</option>
+    </select>
+    <button class="btn-full" onclick="gerarConteudo()">✨ Gerar Conteúdo</button>
+    <div id="conteudo-gerado" style="display:none" class="ok-box"></div>
+  </div>
+  <div class="card">
+    <h3>Agendar Post</h3>
+    <label>Conta:</label>
+    <select id="conta-ag"><option value="">-- Selecione --</option></select>
+    <label>Data e Hora:</label>
+    <input type="datetime-local" id="data-ag">
+    <label>Conteúdo:</label>
+    <textarea id="texto-ag" rows="3" placeholder="Digite o conteúdo..."></textarea>
+    <button class="btn-full btn-green" onclick="agendarPost()">📅 Agendar Post</button>
+  </div>
+  <div class="card">
+    <h3>Criar Campanha de Anúncios</h3>
+    <label>Nome:</label><input type="text" id="nome-camp" placeholder="Ex: Campanha Maio">
+    <label>Nicho:</label>
+    <select id="nicho-camp">
+      <option value="biblico">Bíblico</option><option value="futebol">Futebol</option>
+      <option value="politica">Política</option><option value="entretenimento">Entretenimento</option>
+      <option value="moda">Moda</option><option value="gastronomia">Gastronomia</option>
+      <option value="fitness">Fitness</option><option value="financas">Finanças</option>
+      <option value="games">Games</option><option value="viagem">Viagem</option>
+    </select>
+    <label>Orçamento (USDT):</label><input type="number" id="orc-camp" min="1" step="0.01" placeholder="Ex: 50">
+    <button class="btn-full" onclick="criarCampanha()">🚀 Criar Campanha</button>
+  </div>
+</section>
+
+<!-- CONTAS -->
+<section id="contas" class="section">
+  <h2>Gerenciar Contas</h2>
+  <div class="card">
+    <h3>Adicionar Conta</h3>
+    <label>Nome (com @):</label><input type="text" id="nova-conta" placeholder="@minhaconta">
+    <label>Nicho:</label>
+    <select id="nicho-conta">
+      <option value="biblico">✝️ Bíblico</option><option value="futebol">⚽ Futebol</option>
+      <option value="politica">🏛️ Política</option><option value="entretenimento">🎬 Entretenimento</option>
+      <option value="moda">👗 Moda</option><option value="gastronomia">🍕 Gastronomia</option>
+      <option value="fitness">💪 Fitness</option><option value="financas">💰 Finanças</option>
+      <option value="games">🎮 Games</option><option value="viagem">✈️ Viagem</option>
+    </select>
+    <button class="btn-full btn-green" onclick="adicionarConta()">➕ Adicionar Conta</button>
+  </div>
+  <h3>Minhas Contas</h3>
+  <div id="lista-contas"><p style="color:#999">Carregando...</p></div>
+</section>
+
+<!-- TRABALHADOR -->
+<section id="trabalhador" class="section">
+  <h2>👷 Trabalhar e Ganhar USDT</h2>
+  <div class="ok-box">
+    ❤️ Curtida = <strong>0.001 USDT</strong> &nbsp;|&nbsp;
+    💬 Comentário = <strong>0.002 USDT</strong> &nbsp;|&nbsp;
+    👥 Seguir = <strong>0.003 USDT</strong> &nbsp;|&nbsp;
+    📖 Stories = <strong>0.0005 USDT</strong>
+  </div>
+  <div class="card">
+    <h3>Tarefas Disponíveis</h3>
+    <div id="tarefas-disp"><p style="color:#999">Carregando...</p></div>
+  </div>
+  <div class="card">
+    <h3>Minhas Tarefas em Andamento</h3>
+    <div id="minhas-tarefas"><p style="color:#999">Carregando...</p></div>
+  </div>
+  <div class="card">
+    <h3>Enviar Comprovante Manualmente</h3>
+    <label>ID da Tarefa:</label><input type="number" id="id-manual" placeholder="Ex: 3">
+    <label>Screenshot:</label><input type="file" id="proof-manual" accept="image/*">
+    <button class="btn-full btn-green" onclick="enviarManual()">📤 Enviar Comprovante</button>
+  </div>
+</section>
+
+<!-- CONTRATANTE -->
+<section id="contratante" class="section">
+  <h2>📋 Contratar Engajamento</h2>
+  <div class="warn-box">Para contratar você precisa do <strong>Plano Pro ($9.99 USDT/mês)</strong> e saldo disponível.</div>
+  <div class="card">
+    <h3>Assinar Plano Pro</h3>
+    <p style="margin-bottom:.5rem">Acesso completo ao marketplace por <strong>$9.99 USDT/mês</strong>.</p>
+    <button class="btn-full btn-green" onclick="assinar()">⭐ Assinar NichoPost Pro — $9.99 USDT</button>
+  </div>
+  <div class="card">
+    <h3>Nova Campanha de Engajamento</h3>
+    <label>Conta do Instagram:</label>
+    <select id="conta-tar"><option value="">-- Selecione uma conta --</option></select>
+    <label>Tipo:</label>
+    <select id="tipo-tar" onchange="calcPreco()">
+      <option value="curtida">❤️ Curtidas — 0.001 USDT cada</option>
+      <option value="comentario">💬 Comentários — 0.002 USDT cada</option>
+      <option value="seguir">👥 Seguir — 0.003 USDT cada</option>
+      <option value="stories">📖 Stories — 0.0005 USDT cada</option>
+    </select>
+    <label>Quantidade:</label>
+    <input type="number" id="qtd-tar" value="10" min="1" max="10000" oninput="calcPreco()">
+    <div class="info-box">
+      💵 Total: <strong><span id="total-tar">0.0110</span> USDT</strong>
+      <small style="display:block;color:#666;margin-top:.2rem">Inclui 10% de taxa da plataforma</small>
+    </div>
+    <button class="btn-full btn-green" onclick="contratarTarefa()">✅ Contratar Agora</button>
+  </div>
+  <div class="card">
+    <h3>Minhas Campanhas</h3>
+    <div id="camps-contratadas"><p style="color:#999">Carregando...</p></div>
+  </div>
+</section>
+
+<!-- SAQUE -->
+<section id="saque" class="section">
+  <h2>💸 Sacar Ganhos</h2>
+  <div class="grid">
+    <div class="card"><div class="metric" id="saldo-disp">—</div><small>Saldo Disponível (USDT)</small></div>
+    <div class="card"><div class="metric" id="ganhos-tot">—</div><small>Ganhos Totais (USDT)</small></div>
+    <div class="card"><div class="metric" id="tar-compl">—</div><small>Tarefas Completas</small></div>
+  </div>
+  <div class="card">
+    <h3>Solicitar Saque</h3>
+    <label>Carteira ERC-20 (0x...):</label>
+    <input type="text" id="cart-saque" placeholder="0x0000...0000">
+    <label>Valor (USDT):</label>
+    <input type="number" id="val-saque" min="0.01" step="0.01" placeholder="Mínimo 0.01 USDT" oninput="calcSaque()">
+    <div class="info-box">Taxa 2% — Você receberá: <strong><span id="liq-saque">0.000</span> USDT</strong></div>
+    <button class="btn-full btn-yellow" onclick="solicitarSaque()">💸 Solicitar Saque</button>
+  </div>
+  <div class="card">
+    <h3>Histórico de Saques</h3>
+    <div id="hist-saques"><p style="color:#999">Carregando...</p></div>
+  </div>
+</section>
+
+<!-- PAGAMENTOS -->
+<section id="pagamentos" class="section">
+  <h2>💰 Pagamentos USDT</h2>
+  <div class="card">
+    <h3>Como Depositar</h3>
+    <p style="margin-bottom:.5rem">Envie USDT para a carteira abaixo e depois registre o aporte com valor, TXID e comprovante. O saldo só entra após aprovação do admin.</p>
+    <div class="warn-box">
+      <strong>Rede:</strong> Ethereum (ERC-20)<br>
+      <strong>Endereço:</strong> <code>0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd</code>
+    </div>
+    <div style="text-align:center;margin:1rem 0">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd" alt="QR" style="border-radius:8px">
+      <p style="color:#666;font-size:.85rem;margin-top:.4rem">Escaneie para depositar USDT</p>
+    </div>
+    <div class="warn-box"><strong>Atenção:</strong> Envie APENAS USDT. Outras moedas são perdidas permanentemente.</div>
+  </div>
+  <div class="card">
+    <h3>Registrar Aporte</h3>
+    <label>Valor enviado (USDT):</label>
+    <input type="number" id="dep-valor" min="0.01" step="0.01" placeholder="Ex: 50">
+    <label>TXID:</label>
+    <input type="text" id="dep-txid" placeholder="Cole o hash da transação">
+    <label>Comprovante:</label>
+    <input type="file" id="dep-proof" accept="image/*,.pdf">
+    <button class="btn-full btn-green" onclick="enviarDeposito()">📤 Enviar Aporte para Análise</button>
+    <div class="info-box">Seu saldo não é creditado automaticamente. O aporte fica pendente até aprovação do admin.</div>
+  </div>
+  <div class="card">
+    <h3>Histórico de Aportes</h3>
+    <div id="hist-depositos"><p style="color:#999">Carregando...</p></div>
+  </div>
+  <div class="card">
+    <h3>Tabela de Preços</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:.9rem">
+      <tr style="background:#f7fafc">
+        <th style="padding:.5rem;text-align:left;border-bottom:2px solid #e2e8f0">Ação</th>
+        <th style="padding:.5rem;text-align:right;border-bottom:2px solid #e2e8f0">Preço/unidade</th>
+      </tr>
+      <tr><td style="padding:.5rem;border-bottom:1px solid #e2e8f0">❤️ Curtida</td><td style="padding:.5rem;text-align:right;color:#667eea;font-weight:bold;border-bottom:1px solid #e2e8f0">0.001 USDT</td></tr>
+      <tr><td style="padding:.5rem;border-bottom:1px solid #e2e8f0">💬 Comentário</td><td style="padding:.5rem;text-align:right;color:#667eea;font-weight:bold;border-bottom:1px solid #e2e8f0">0.002 USDT</td></tr>
+      <tr><td style="padding:.5rem;border-bottom:1px solid #e2e8f0">👥 Seguir</td><td style="padding:.5rem;text-align:right;color:#667eea;font-weight:bold;border-bottom:1px solid #e2e8f0">0.003 USDT</td></tr>
+      <tr><td style="padding:.5rem">📖 Stories</td><td style="padding:.5rem;text-align:right;color:#667eea;font-weight:bold">0.0005 USDT</td></tr>
+    </table>
+    <div class="info-box" style="margin-top:.6rem">Taxa plataforma: <strong>10%</strong> &nbsp;|&nbsp; Taxa saque: <strong>2%</strong></div>
+  </div>
+</section>
+
+<!-- ADMIN -->
+<section id="admin" class="section">
+  <h2>⚡ Painel Admin</h2>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+    <button onclick="loadDepositosPend()">🔄 Depósitos</button>
+    <button onclick="loadSaquesPend()">🔄 Saques</button>
+    <button onclick="loadTarefasConc()">🔄 Tarefas</button>
+    <button onclick="loadUsuarios()">🔄 Usuários</button>
+  </div>
+  <div class="card"><h3>💳 Depósitos Pendentes</h3><div id="depositos-pend"><p style="color:#999">Clique em Atualizar</p></div></div>
+  <div class="card"><h3>💸 Saques Pendentes</h3><div id="saques-pend"><p style="color:#999">Clique em Atualizar</p></div></div>
+  <div class="card"><h3>✅ Tarefas Concluídas</h3><div id="tarefas-conc"><p style="color:#999">Clique em Atualizar</p></div></div>
+  <div class="card"><h3>👥 Usuários</h3><div id="lista-users"><p style="color:#999">Clique em Atualizar</p></div></div>
+</section>
+
+</main>
+
+<script>
+const PR = {curtida:.001,comentario:.002,seguir:.003,stories:.0005};
+const IC = {curtida:'❤️',comentario:'💬',seguir:'👥',seguidor:'👥',stories:'📖',story:'📖'};
+const SL = {pendente:'⏳ Aguardando',em_andamento:'⚙️ Em execução',concluida:'✅ Concluída',cancelada:'❌ Cancelada',aprovada:'✅ Aprovada'};
+const SC = {pendente:'gy',em_andamento:'bg',concluida:'gg',cancelada:'gr',aprovada:'gg'};
+
+function show(id, el) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(el) el.classList.add('active');
+  if(id==='trabalhador'){loadTarefasDisp();loadMinhasTarefas();}
+  if(id==='contratante'){loadCampsContratadas();}
+  if(id==='saque'){loadSaldo();loadHistSaques();}
+  if(id==='contas'){loadContas();}
+  if(id==='pagamentos'){loadHistDepositos();}
+  if(id==='admin'){loadDepositosPend();loadSaquesPend();loadTarefasConc();loadUsuarios();}
+}
+
+function f4(n){return parseFloat(n||0).toFixed(4);}
+function bdg(s){return `<span class="badge ${SC[s]||'bg'}">${SL[s]||s}</span>`;}
+
+function api(url,opts={}){
+  return fetch(url,opts).then(r=>r.json().then(d=>({ok:r.ok,d})));
+}
+
+// ---- CONTEÚDO ----
+function gerarConteudo(){
+  const n=document.getElementById('nicho-sel').value;
+  api(`/api/conteudo/${n}`).then(({ok,d})=>{
+    const el=document.getElementById('conteudo-gerado');
+    el.style.display='block';
+    el.innerHTML=ok?`<strong>${n}</strong><br>${d.conteudo}`:'❌ Erro ao gerar';
+  });
+}
+
+function agendarPost(){
+  const conta=document.getElementById('conta-ag').value;
+  const data=document.getElementById('data-ag').value;
+  const conteudo=document.getElementById('texto-ag').value.trim();
+  if(!conta){alert('Selecione uma conta.');return;}
+  if(!data){alert('Selecione data e hora.');return;}
+  if(!conteudo){alert('Digite o conteúdo.');return;}
+  api('/api/agendamentos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conta,data,conteudo})})
+  .then(({ok,d})=>{
+    if(ok){alert('✅ Post agendado!');document.getElementById('texto-ag').value='';}
+    else alert('❌ '+(d.error||'Erro'));
+  });
+}
+
+function criarCampanha(){
+  const nome=document.getElementById('nome-camp').value.trim();
+  const orcamento=parseFloat(document.getElementById('orc-camp').value);
+  const nicho=document.getElementById('nicho-camp').value;
+  if(!nome){alert('Digite o nome.');return;}
+  if(!orcamento||orcamento<=0){alert('Orçamento inválido.');return;}
+  api('/api/campanhas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome,orcamento,nicho})})
+  .then(({ok,d})=>{
+    if(ok){alert('✅ Campanha criada!');document.getElementById('nome-camp').value='';document.getElementById('orc-camp').value='';}
+    else alert('❌ '+(d.error||'Erro'));
+  });
+}
+
+// ---- CONTAS ----
+function adicionarConta(){
+  const nome=document.getElementById('nova-conta').value.trim();
+  const nicho=document.getElementById('nicho-conta').value;
+  if(!nome){alert('Digite o nome da conta (ex: @minhaconta)');return;}
+  api('/api/contas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome,nicho})})
+  .then(({ok,d})=>{
+    if(ok){alert('✅ Conta adicionada!');document.getElementById('nova-conta').value='';loadContas();}
+    else alert('❌ '+(d.error||'Erro ao adicionar'));
+  }).catch(()=>alert('❌ Erro de conexão'));
+}
+
+function loadContas(){
+  api('/api/contas').then(({ok,d})=>{
+    if(!ok)return;
+    // Renderiza lista
+    const el=document.getElementById('lista-contas');
+    if(el){
+      el.innerHTML=(!d||d.length===0)
+        ?'<p style="color:#999">Nenhuma conta ainda. Adicione acima!</p>'
+        :'<div class="grid">'+d.map(c=>`<div class="card" style="border-left:4px solid #667eea"><strong>${c.nome}</strong> <span class="badge bg">${c.nicho}</span><p style="color:#666;font-size:.85rem;margin-top:.3rem">👥 ${c.seguidores||0} seguidores</p></div>`).join('')+'</div>';
+    }
+    // Atualiza selects
+    ['conta-ag','conta-tar'].forEach(id=>{
+      const sel=document.getElementById(id);
+      if(sel){
+        sel.innerHTML='<option value="">-- Selecione --</option>';
+        d.forEach(c=>{const o=document.createElement('option');o.value=c.nome;o.textContent=id==='conta-tar'?`${c.nome} (${c.nicho})`:c.nome;sel.appendChild(o);});
+      }
+    });
+  });
+}
+
+// ---- TRABALHADOR ----
+function loadTarefasDisp(){
+  const el=document.getElementById('tarefas-disp');
+  el.innerHTML='<p style="color:#999">Carregando...</p>';
+  api('/api/tarefas/disponiveis').then(({ok,d})=>{
+    if(!ok){el.innerHTML='<p style="color:#999;text-align:center">📭 Nenhuma tarefa disponível agora</p>';return;}
+
+    const blocked = d && d.blocked;
+    const tasks = Array.isArray(d) ? d : ((d && d.tasks) || []);
+
+    if(blocked){
+      el.innerHTML=`<div class="warn-box">⛔ ${(d && d.message) || 'Você já possui uma tarefa em andamento.'}</div>`;
+      return;
+    }
+
+    if(tasks.length===0){el.innerHTML='<p style="color:#999;text-align:center">📭 Nenhuma tarefa disponível agora</p>';return;}
+    el.innerHTML=tasks.map(t=>`
+      <div class="task-row" style="border-left-color:#48bb78">
+        <div>
+          <p><strong>${IC[t.tipo]||'📌'} ${t.tipo}</strong> — ${t.quantidade} ações</p>
+          <p style="color:#555">📱 ${t.conta}</p>
+          <p style="color:#38a169;font-weight:bold">💰 +${f4(t.recompensa*t.quantidade)} USDT</p>
+        </div>
+        <button class="btn-green" onclick="pegarTarefa(${t.id})" style="white-space:nowrap">✅ Pegar</button>
+      </div>`).join('');
+  });
+}
+
+function pegarTarefa(id){
+  api(`/api/pegar_tarefa/${id}`,{method:'POST'}).then(({ok,d})=>{
+    alert((ok?'✅ ':'❌ ')+(d.message||d.error||'Erro'));
+    loadTarefasDisp();loadMinhasTarefas();
+  });
+}
+
+function loadMinhasTarefas(){
+  const el=document.getElementById('minhas-tarefas');
+  el.innerHTML='<p style="color:#999">Carregando...</p>';
+  api('/api/minhas_tarefas').then(({ok,d})=>{
+    if(!ok||d.length===0){el.innerHTML='<p style="color:#999;text-align:center">📭 Nenhuma tarefa em andamento</p>';return;}
+    el.innerHTML=d.map(t=>`
+      <div class="task-row">
+        <div>
+          <p><strong>${IC[t.tipo]||'📌'} ${t.tipo}</strong> — ${t.quantidade} ações</p>
+          <p style="color:#555">📱 ${t.conta}</p>
+          <p>Recompensa: <strong>${f4(t.recompensa*t.quantidade)} USDT</strong></p>
+          <p>${bdg(t.status)}</p>
+        </div>
+        ${t.status==='em_andamento'?`<div style="display:flex;flex-direction:column;gap:.4rem;min-width:160px"><input type="file" id="pf-${t.id}" accept="image/*" style="font-size:.8rem"><button class="btn-green" onclick="enviarProva(${t.id})" style="padding:.45rem">📤 Enviar Prova</button></div>`:''}
+      </div>`).join('');
+  });
+}
+
+function enviarProva(id){
+  const fi=document.getElementById(`pf-${id}`);
+  if(!fi||!fi.files[0]){alert('Selecione o comprovante.');return;}
+  const fd=new FormData();fd.append('proof',fi.files[0]);
+  fetch(`/api/verificar/${id}`,{method:'POST',body:fd})
+  .then(r=>r.json()).then(d=>{
+    alert(d.message||('❌ '+(d.error||'Erro')));
+    loadMinhasTarefas();loadSaldo();
+  });
+}
+
+function enviarManual(){
+  const id=document.getElementById('id-manual').value;
+  const fi=document.getElementById('proof-manual');
+  if(!id){alert('Digite o ID da tarefa.');return;}
+  if(!fi.files[0]){alert('Selecione um arquivo.');return;}
+  const fd=new FormData();fd.append('proof',fi.files[0]);
+  fetch(`/api/verificar/${id}`,{method:'POST',body:fd})
+  .then(r=>r.json()).then(d=>{
+    alert(d.message||('❌ '+(d.error||'Erro')));
+    if(d.message){document.getElementById('id-manual').value='';fi.value='';loadMinhasTarefas();}
+  });
+}
+
+// ---- DEPOSITOS ----
+function enviarDeposito(){
+  const valor=document.getElementById('dep-valor').value;
+  const txid=document.getElementById('dep-txid').value.trim();
+  const fi=document.getElementById('dep-proof');
+
+  if(!valor || parseFloat(valor)<=0){alert('❌ Informe um valor válido.');return;}
+  if(txid.length<8){alert('❌ Informe um TXID válido.');return;}
+  if(!fi.files[0]){alert('❌ Envie o comprovante do aporte.');return;}
+
+  const fd=new FormData();
+  fd.append('valor', valor);
+  fd.append('txid', txid);
+  fd.append('proof', fi.files[0]);
+
+  fetch('/api/deposito',{method:'POST',body:fd})
+    .then(async r=>({ok:r.ok,d:await r.json()}))
+    .then(({ok,d})=>{
+      alert((ok?'✅ ':'❌ ')+(d.message||d.error||'Erro ao enviar aporte'));
+      if(ok){
+        document.getElementById('dep-valor').value='';
+        document.getElementById('dep-txid').value='';
+        fi.value='';
+        loadHistDepositos();
+      }
+    }).catch(()=>alert('❌ Erro de conexão ao enviar aporte.'));
+}
+
+function loadHistDepositos(){
+  const el=document.getElementById('hist-depositos');
+  if(!el)return;
+  el.innerHTML='<p style="color:#999">Carregando...</p>';
+  api('/api/historico_depositos').then(({ok,d})=>{
+    if(!ok||d.length===0){el.innerHTML='<p style="color:#999">Nenhum aporte enviado ainda.</p>';return;}
+    el.innerHTML=d.map(dep=>`
+      <div class="card" style="border-left:4px solid #667eea">
+        <p><strong>${parseFloat(dep.valor).toFixed(4)} USDT</strong> — ${bdg(dep.status)}</p>
+        <p>TXID: <code>${dep.txid}</code></p>
+        <p><a href="/api/uploads/${dep.proof}" target="_blank" style="color:#667eea">📎 Ver comprovante</a></p>
+        <p style="color:#666;font-size:.82rem">Solicitado em: ${dep.data_solicitacao||''}</p>
+        ${dep.observacao?`<p style="color:#555">Obs: ${dep.observacao}</p>`:''}
+      </div>`).join('');
+  });
+}
+
+// ---- CONTRATANTE ----
+function calcPreco(){
+  const t=document.getElementById('tipo-tar').value;
+  const q=parseInt(document.getElementById('qtd-tar').value)||0;
+  const sub=(PR[t]||0)*q;
+  document.getElementById('total-tar').textContent=(sub*1.10).toFixed(4);
+}
+
+function contratarTarefa(){
+  const conta=document.getElementById('conta-tar').value;
+  const tipo=document.getElementById('tipo-tar').value;
+  const quantidade=parseInt(document.getElementById('qtd-tar').value);
+  if(!conta){alert('❌ Selecione uma conta.');return;}
+  if(quantidade<1){alert('❌ Quantidade inválida.');return;}
+  api('/api/tarefas',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({conta,tipo,quantidade,nicho:'instagram'})})
+  .then(({ok,d})=>{
+    if(ok){
+      alert('✅ '+d.message);
+      document.getElementById('qtd-tar').value='10';
+      calcPreco();
+      loadCampsContratadas();
+      loadTarefasDisp();
+      loadContas();
+    }
+    else alert('❌ '+(d.error||'Erro ao contratar'));
+  }).catch(e=>alert('❌ Erro: '+e));
+}
+
+function assinar(){
+  if(!confirm('Assinar NichoPost Pro por $9.99 USDT/mês?'))return;
+  api('/api/assinar',{method:'POST'}).then(({ok,d})=>{
+    alert((ok?'✅ ':'❌ ')+(d.message||d.error));
+    if(ok)loadUsuarioInfo();
+  });
+}
+
+function loadCampsContratadas(){
+  const el=document.getElementById('camps-contratadas');
+  el.innerHTML='<p style="color:#999">Carregando...</p>';
+  api('/api/minhas_tarefas_contratadas').then(({ok,d})=>{
+    if(!ok||d.length===0){el.innerHTML='<p style="color:#999;text-align:center">📭 Nenhuma campanha ainda</p>';return;}
+    el.innerHTML=d.map(t=>`
+      <div class="task-row">
+        <div>
+          <p><strong>${IC[t.tipo]||'📌'} ${t.tipo}</strong> — ${t.quantidade} ações</p>
+          <p style="color:#555">📱 ${t.conta}</p>
+          <p>Total: <strong style="color:#667eea">${f4(t.valor_total)} USDT</strong></p>
+          <p>Executor: ${t.trabalhador?`<span class="badge gg">${t.trabalhador}</span>`:'<span style="color:#999">⏳ Aguardando</span>'}</p>
+          <p>${bdg(t.status)}</p>
+        </div>
+      </div>`).join('');
+  });
+}
+
+// ---- SAQUE ----
+function calcSaque(){
+  const v=parseFloat(document.getElementById('val-saque').value)||0;
+  document.getElementById('liq-saque').textContent=(v*.98).toFixed(3);
+}
+
+function loadSaldo(){
+  api('/api/saldo_trabalhador').then(({ok,d})=>{
+    if(!ok)return;
+    document.getElementById('saldo-disp').textContent=f4(d.saldo);
+    document.getElementById('ganhos-tot').textContent=f4(d.ganhos_totais);
+    document.getElementById('tar-compl').textContent=d.tarefas_completas;
+  });
+}
+
+function solicitarSaque(){
+  const carteira=document.getElementById('cart-saque').value.trim();
+  const valor=parseFloat(document.getElementById('val-saque').value);
+  if(!carteira.startsWith('0x')||carteira.length!==42){alert('❌ Carteira inválida (deve ter 42 chars e começar com 0x)');return;}
+  if(valor<0.01){alert('❌ Mínimo 0.01 USDT');return;}
+  api('/api/saque',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({carteira,valor})})
+  .then(({ok,d})=>{
+    alert((ok?'✅ ':'❌ ')+(d.message||d.error));
+    if(ok){document.getElementById('cart-saque').value='';document.getElementById('val-saque').value='';loadSaldo();loadHistSaques();}
+  });
+}
+
+function loadHistSaques(){
+  const el=document.getElementById('hist-saques');
+  api('/api/historico_saques').then(({ok,d})=>{
+    if(!ok||d.length===0){el.innerHTML='<p style="color:#999">Nenhum saque ainda.</p>';return;}
+    el.innerHTML=d.map(s=>`
+      <div class="card" style="border-left:4px solid #f6ad55">
+        <p><strong>${parseFloat(s.valor).toFixed(4)} USDT</strong> → <code>${s.carteira.slice(0,10)}...${s.carteira.slice(-6)}</code></p>
+        <p>Líquido: <strong>${parseFloat(s.valor_liquido).toFixed(4)} USDT</strong></p>
+        <p>${bdg(s.status)} <small style="color:#999;margin-left:.5rem">${s.data_solicitacao||''}</small></p>
+      </div>`).join('');
+  });
+}
+
+// ---- ADMIN ----
+function loadDepositosPend(){
+  const el=document.getElementById('depositos-pend');
+  api('/api/admin/depositos_pendentes').then(({ok,d})=>{
+    if(!ok||d.length===0){el.innerHTML='<p style="color:#999;text-align:center">📭 Nenhum depósito pendente</p>';return;}
+    el.innerHTML=d.map(dep=>`
+      <div class="card" style="border-left:4px solid #667eea">
+        <p><strong>${dep.usuario}</strong> — ${parseFloat(dep.valor).toFixed(4)} USDT</p>
+        <p>TXID: <code>${dep.txid}</code></p>
+        <p><a href="/api/uploads/${dep.proof}" target="_blank" style="color:#667eea">📎 Ver comprovante</a></p>
+        <p style="color:#666;font-size:.82rem">${dep.data_solicitacao||''}</p>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button class="btn-green" onclick="aprovDeposito(${dep.id})">✅ Aprovar</button>
+          <button class="btn-red" onclick="rejDeposito(${dep.id})">❌ Rejeitar</button>
+        </div>
+      </div>`).join('');
+  });
+}
+
+function aprovDeposito(id){
+  api(`/api/admin/aprovar_deposito/${id}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({})
+  }).then(({ok,d})=>{
+    alert((ok?'✅ ':'❌ ')+(d.message||d.error));
+    loadDepositosPend();loadUsuarios();
+  });
+}
+
+function rejDeposito(id){
+  const observacao=prompt('Motivo da rejeição (opcional):') || '';
+  api(`/api/admin/rejeitar_deposito/${id}`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({observacao})
+  }).then(({ok,d})=>{
+    alert((ok?'✅ ':'❌ ')+(d.message||d.error));
+    loadDepositosPend();
+  });
+}
+
+function loadSaquesPend(){
+  const el=document.getElementById('saques-pend');
+  api('/api/admin/saques_pendentes').then(({ok,d})=>{
+    if(!ok||d.length===0){el.innerHTML='<p style="color:#999;text-align:center">📭 Nenhum saque pendente</p>';return;}
+    el.innerHTML=d.map(s=>`
+      <div class="card" style="border-left:4px solid #f6ad55">
+        <p><strong>${s.usuario}</strong> — ${parseFloat(s.valor).toFixed(4)} USDT → líquido: ${parseFloat(s.valor_liquido).toFixed(4)} USDT</p>
+        <p><code>${s.carteira}</code></p>
+        <p style="color:#666;font-size:.82rem">${s.data_solicitacao}</p>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button class="btn-green" onclick="aprovSaque(${s.id})">✅ Aprovar</button>
+          <button class="btn-red" onclick="rejSaque(${s.id})">❌ Rejeitar</button>
+        </div>
+      </div>`).join('');
+  });
+}
+
+function aprovSaque(id){api(`/api/admin/aprovar_saque/${id}`,{method:'POST'}).then(({ok,d})=>{alert((ok?'✅ ':'❌ ')+(d.message||d.error));loadSaquesPend();});}
+function rejSaque(id){api(`/api/admin/rejeitar_saque/${id}`,{method:'POST'}).then(({ok,d})=>{alert((ok?'✅ ':'❌ ')+(d.message||d.error));loadSaquesPend();});}
+
+function loadTarefasConc(){
+  const el=document.getElementById('tarefas-conc');
+  api('/api/admin/tarefas_concluidas').then(({ok,d})=>{
+    if(!ok||d.length===0){el.innerHTML='<p style="color:#999;text-align:center">📭 Nenhuma tarefa pendente</p>';return;}
+    el.innerHTML=d.map(t=>`
+      <div class="card" style="border-left:4px solid #48bb78">
+        <p><strong>${IC[t.tipo]||'📌'} #${t.id}</strong> — ${t.tipo} × ${t.quantidade}</p>
+        <p>📱 ${t.conta} &nbsp;|&nbsp; 👷 ${t.trabalhador}</p>
+        <p>Recompensa: <strong>${f4(t.recompensa*t.quantidade)} USDT</strong></p>
+        <p><a href="/api/uploads/${t.proof}" target="_blank" style="color:#667eea">📸 Ver Comprovante</a></p>
+        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+          <button class="btn-green" onclick="aprovTarefa(${t.id})">✅ Aprovar</button>
+          <button class="btn-red" onclick="rejTarefa(${t.id})">❌ Rejeitar</button>
+        </div>
+      </div>`).join('');
+  });
+}
+
+function aprovTarefa(id){api(`/api/admin/aprovar_tarefa/${id}`,{method:'POST'}).then(({ok,d})=>{alert((ok?'✅ ':'❌ ')+(d.message||d.error));loadTarefasConc();});}
+function rejTarefa(id){api(`/api/admin/rejeitar_tarefa/${id}`,{method:'POST'}).then(({ok,d})=>{alert((ok?'✅ ':'❌ ')+(d.message||d.error));loadTarefasConc();});}
+
+function loadUsuarios(){
+  const el=document.getElementById('lista-users');
+  api('/api/admin/usuarios').then(({ok,d})=>{
+    if(!ok||d.length===0){el.innerHTML='<p style="color:#999">Nenhum usuário.</p>';return;}
+    el.innerHTML='<div class="grid">'+d.map(u=>`
+      <div class="card">
+        <p><strong>${u.username}</strong></p>
+        <p>Saldo: <strong>${f4(u.saldo)} USDT</strong></p>
+        <p>${u.subscribed?'<span class="badge gg">Pro</span>':'<span class="badge gy">Free</span>'}
+           ${u.is_worker?'<span class="badge bg" style="margin-left:4px">Trabalhador</span>':''}</p>
+      </div>`).join('')+'</div>';
+  });
+}
+
+// ---- INIT ----
+function loadUsuarioInfo(){
+  api('/api/me').then(({ok,d})=>{
+    if(!ok)return;
+    const el=document.getElementById('user-info');
+    if(el) el.textContent=`👤 ${d.user} | 💰 ${f4(d.saldo)} USDT | ${d.subscribed?'⭐ Pro':'🆓 Free'} | ${d.is_worker?'👷 Trabalhador':'📋 Usuário'}`;
+    if(d.user==='admin') document.getElementById('tab-admin').style.display='inline-block';
+  });
+}
+
+window.onload=function(){
+  loadUsuarioInfo();
+  loadContas();
+  loadHistDepositos();
+  calcPreco();
+  api('/api/dashboard').then(({ok,d})=>{
+    if(!ok)return;
+    document.getElementById('m-contas').textContent=d.contas;
+    document.getElementById('m-posts').textContent=d.posts_agendados;
+    document.getElementById('m-orc').textContent='$'+d.orcamento_anuncios;
+    document.getElementById('m-tar').textContent=d.tarefas_marketplace;
+  });
+  document.getElementById('val-saque').addEventListener('input',calcSaque);
+};
+</script>
+</body>
+</html>
