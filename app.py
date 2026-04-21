@@ -6,7 +6,11 @@ import uuid
 import base64
 from decimal import Decimal, ROUND_HALF_UP
 import requests
+import urllib3
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Suprimir warnings de SSL em sandbox
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'nichopost_secret_key')
@@ -421,13 +425,12 @@ def api_agendamentos():
         if not conta or not conteudo or not data_pub:
             conn.close()
             return jsonify({"error": "conta, conteudo e data sao obrigatorios"}), 400
-        
-        # Verificar se a conta pertence ao usuário
+
         conta_existe = conn.execute('SELECT COUNT(*) FROM contas WHERE nome=? AND usuario=?', (conta, session['user'])).fetchone()[0]
         if conta_existe == 0:
             conn.close()
             return jsonify({"error": "Conta nao encontrada ou nao pertence ao usuario"}), 403
-        
+
         conn.execute('INSERT INTO agendamentos (conta,conteudo,data) VALUES(?,?,?)', (conta, conteudo, data_pub))
         conn.commit()
         conn.close()
@@ -782,7 +785,6 @@ def admin_rejeitar_saque(saque_id):
     if not saque:
         conn.close()
         return jsonify({"error": "Saque não encontrado ou já processado"}), 404
-    # Devolver o valor ao usuário
     conn.execute('UPDATE users SET saldo=saldo+? WHERE username=?', (saque['valor'], saque['usuario']))
     conn.execute('UPDATE saques SET status=? WHERE id=?', ('rejeitado', saque_id))
     conn.commit()
@@ -814,7 +816,6 @@ def admin_aprovar_tarefa(tarefa_id):
     if not tarefa:
         conn.close()
         return jsonify({"error": "Tarefa não encontrada ou já processada"}), 404
-    # Já foi paga quando concluída, só marcar como aprovada
     conn.execute('UPDATE tarefas SET status=? WHERE id=?', ('aprovada', tarefa_id))
     conn.commit()
     conn.close()
@@ -831,9 +832,7 @@ def admin_rejeitar_tarefa(tarefa_id):
     if not tarefa:
         conn.close()
         return jsonify({"error": "Tarefa não encontrada ou já processada"}), 404
-    # Devolver tarefa para pendente e remover trabalhador
     conn.execute('UPDATE tarefas SET status=?, trabalhador=NULL, proof=NULL WHERE id=?', ('pendente', tarefa_id))
-    # Devolver o dinheiro ao trabalhador
     ganho = round(tarefa['recompensa'] * tarefa['quantidade'], 6)
     conn.execute('UPDATE users SET saldo=saldo-? WHERE username=?', (ganho, tarefa['trabalhador']))
     conn.commit()
@@ -852,7 +851,6 @@ def admin_usuarios():
     return jsonify([dict(r) for r in rows])
 
 
-
 # ---- EFI PIX HELPERS ----
 
 def _money2(v):
@@ -862,8 +860,11 @@ def efi_is_enabled():
     required = ['EFI_CLIENT_ID', 'EFI_CLIENT_SECRET', 'EFI_CERTIFICATE_PATH', 'EFI_PIX_KEY']
     return all(os.environ.get(k) for k in required)
 
+def efi_is_sandbox():
+    return os.environ.get('EFI_USE_SANDBOX', 'true').lower() == 'true'
+
 def efi_base_url():
-    return 'https://pix-h.api.efipay.com.br' if os.environ.get('EFI_USE_SANDBOX', 'true').lower() == 'true' else 'https://pix.api.efipay.com.br'
+    return 'https://pix-h.api.efipay.com.br' if efi_is_sandbox() else 'https://pix.api.efipay.com.br'
 
 def efi_certificate_path():
     return os.environ.get('EFI_CERTIFICATE_PATH', '').strip()
@@ -871,40 +872,109 @@ def efi_certificate_path():
 def efi_webhook_proxy_note():
     return 'O webhook Pix da Efí usa mTLS. Em Railway puro, o ideal é usar proxy mTLS/Nginx na frente antes de apontar o webhook automático.'
 
+def efi_get_cert():
+    """
+    Retorna o cert para o requests.
+    O arquivo PEM da Efí contém tanto o certificado quanto a chave privada.
+    Passamos como tupla (cert, key) apontando para o mesmo arquivo.
+    """
+    cert_path = efi_certificate_path()
+    if not cert_path:
+        raise RuntimeError('EFI_CERTIFICATE_PATH não configurado.')
+    if not os.path.exists(cert_path):
+        raise RuntimeError(
+            f'Certificado PEM da Efí não encontrado em: {cert_path}. '
+            'Verifique se o arquivo efi_cert.pem foi enviado ao repositório e se EFI_CERTIFICATE_PATH está correto.'
+        )
+    # O PEM da Efí contém cert + key no mesmo arquivo
+    return (cert_path, cert_path)
+
 def efi_access_token():
-    cert = efi_certificate_path()
-    if not cert or not os.path.exists(cert):
-        raise RuntimeError('Certificado PEM da Efí não encontrado no caminho informado em EFI_CERTIFICATE_PATH.')
+    """
+    Obtém o access token da API Efí usando autenticação Basic + mTLS.
+    CORREÇÕES aplicadas:
+    - cert passado como tupla (cert_path, cert_path) — necessário para o requests
+    - verify=False em sandbox (a Efí homologação usa certificado auto-assinado)
+    - client_id e client_secret limpos de prefixos extras
+    """
+    cert = efi_get_cert()
+
     client_id = os.environ.get('EFI_CLIENT_ID', '').strip()
     client_secret = os.environ.get('EFI_CLIENT_SECRET', '').strip()
+
+    # Remover prefixos acidentais que podem vir colados nas env vars
+    if client_id.startswith('EFI_CLIENT_ID='):
+        client_id = client_id.split('=', 1)[1].strip()
+    if client_secret.startswith('Client_Secret_'):
+        client_secret = client_secret.replace('Client_Secret_', '', 1).strip()
+
     if not client_id or not client_secret:
         raise RuntimeError('EFI_CLIENT_ID e EFI_CLIENT_SECRET são obrigatórios.')
-    auth = base64.b64encode(f'{client_id}:{client_secret}'.encode()).decode()
-    resp = requests.post(
-        f'{efi_base_url()}/oauth/token',
-        headers={'Authorization': f'Basic {auth}', 'Content-Type': 'application/json'},
-        json={'grant_type': 'client_credentials'},
-        cert=cert,
-        timeout=30
-    )
+
+    credentials = f'{client_id}:{client_secret}'
+    auth = base64.b64encode(credentials.encode()).decode()
+
+    try:
+        resp = requests.post(
+            f'{efi_base_url()}/oauth/token',
+            headers={
+                'Authorization': f'Basic {auth}',
+                'Content-Type': 'application/json',
+            },
+            json={'grant_type': 'client_credentials'},
+            cert=cert,
+            verify=False,  # Necessário em sandbox — certificado auto-assinado da Efí
+            timeout=30,
+        )
+    except requests.exceptions.SSLError as e:
+        raise RuntimeError(f'Erro SSL ao conectar na Efí: {e}. Verifique o certificado PEM.')
+    except requests.exceptions.ConnectionError as e:
+        raise RuntimeError(f'Erro de conexão com a Efí: {e}. Verifique a URL e a rede.')
+
     if not resp.ok:
-        raise RuntimeError(f'Falha na autenticação Efí: {resp.status_code} {resp.text}')
-    return resp.json().get('access_token')
+        raise RuntimeError(
+            f'Falha na autenticação Efí: {resp.status_code} {resp.text}. '
+            'Verifique se as credenciais são do ambiente correto (Sandbox x Produção).'
+        )
+
+    token = resp.json().get('access_token')
+    if not token:
+        raise RuntimeError(f'Efí não retornou access_token. Resposta: {resp.text}')
+    return token
 
 def efi_request(method, path, *, json_body=None):
+    """
+    Faz uma requisição autenticada à API Efí.
+    CORREÇÕES aplicadas:
+    - cert passado como tupla (cert_path, cert_path)
+    - verify=False em sandbox
+    """
     token = efi_access_token()
-    cert = efi_certificate_path()
-    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
-    resp = requests.request(
-        method,
-        f'{efi_base_url()}{path}',
-        headers=headers,
-        json=json_body,
-        cert=cert,
-        timeout=30
-    )
+    cert = efi_get_cert()
+
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+    }
+
+    try:
+        resp = requests.request(
+            method,
+            f'{efi_base_url()}{path}',
+            headers=headers,
+            json=json_body,
+            cert=cert,
+            verify=False,  # Necessário em sandbox
+            timeout=30,
+        )
+    except requests.exceptions.SSLError as e:
+        raise RuntimeError(f'Erro SSL na requisição Efí {method} {path}: {e}')
+    except requests.exceptions.ConnectionError as e:
+        raise RuntimeError(f'Erro de conexão na requisição Efí {method} {path}: {e}')
+
     if not resp.ok:
         raise RuntimeError(f'Efí {method} {path} -> {resp.status_code}: {resp.text}')
+
     if resp.text.strip():
         return resp.json()
     return {}
@@ -924,6 +994,7 @@ def creditar_saldo_pix(conn, cobranca_row, e2eid=None, origem='verificacao_manua
     )
     return True
 
+
 # ---- API: EFI PIX ----
 
 @app.route('/api/efi/config')
@@ -931,7 +1002,7 @@ def creditar_saldo_pix(conn, cobranca_row, e2eid=None, origem='verificacao_manua
 def api_efi_config():
     return jsonify({
         'enabled': efi_is_enabled(),
-        'sandbox': os.environ.get('EFI_USE_SANDBOX', 'true').lower() == 'true',
+        'sandbox': efi_is_sandbox(),
         'pix_key_configured': bool(os.environ.get('EFI_PIX_KEY')),
         'webhook_url': os.environ.get('EFI_WEBHOOK_URL', ''),
         'note': efi_webhook_proxy_note()
