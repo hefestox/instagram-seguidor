@@ -123,7 +123,7 @@ def init_db():
     if conn.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0:
         conn.execute(
             'INSERT INTO users (username,email,password,saldo_disponivel,is_admin) VALUES(?,?,?,?,?)',
-            ('admin', 'admin@admin.com', generate_password_hash('admin123'), 0, 1)
+            ('admin', 'admin@admin.com', generate_password_hash('87347748'), 0, 1)
         )
 
     # Config padrão
