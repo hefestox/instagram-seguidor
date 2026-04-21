@@ -8,54 +8,34 @@ from decimal import Decimal, ROUND_HALF_UP
 import requests
 import urllib3
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime, timedelta
+import math
 
-# Suprimir warnings de SSL em sandbox
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'nichopost_secret_key')
+app.secret_key = os.environ.get('SECRET_KEY', 'staking_secret_key_2024')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-CARTEIRA_ADMIN  = '0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd'
-PLANO_PRECO     = 9.99
-PLANO_NOME      = 'NichoPost Pro'
-TAXA_PLATAFORMA = 0.10
-TAXA_SAQUE      = 0.02
-EFI_PIX_EXPIRACAO = 3600
+# ---- CONFIGURAÇÕES DA PLATAFORMA ----
+PLATAFORMA_NOME     = os.environ.get('PLATAFORMA_NOME', 'CryptoYield')
+CARTEIRA_DEPOSITO   = os.environ.get('CARTEIRA_DEPOSITO', '0xBa4D5e87e8bcaA85bF29105AB3171b9fDb2eF9dd')
+RENDIMENTO_DIARIO   = float(os.environ.get('RENDIMENTO_DIARIO', '0.02'))   # 2% padrão, admin ajusta
+APORTE_MINIMO       = float(os.environ.get('APORTE_MINIMO', '50'))
+SAQUE_MINIMO        = float(os.environ.get('SAQUE_MINIMO', '10'))
+TAXA_SAQUE          = float(os.environ.get('TAXA_SAQUE', '0.03'))           # 3% taxa de saque
+LOCK_DIAS           = int(os.environ.get('LOCK_DIAS', '7'))                 # dias bloqueado após aporte
 
-PRECOS = {
-    'curtida':    0.001,
-    'comentario': 0.002,
-    'seguir':     0.003,
-    'stories':    0.0005,
-    'story':      0.0005,
-}
-
-nichos = ["biblico", "futebol", "politica", "entretenimento", "moda",
-          "gastronomia", "fitness", "financas", "games", "viagem"]
-
-conteudos = {
-    "biblico":        "Versículo do dia: 'O Senhor é meu pastor, nada me faltará.' #fé #bíblia #cristão",
-    "futebol":        "Análise: O time venceu com gol no último minuto! #futebol #esporte #vitória",
-    "politica":       "Candidato X propõe mudanças importantes. #política #eleições #brasil",
-    "entretenimento": "Novo filme blockbuster chega aos cinemas! #cinema #entretenimento #filme",
-    "moda":           "Tendências primavera: Cores vibrantes e tecidos leves. #moda #beleza",
-    "gastronomia":    "Receita fácil: Brigadeiro de chocolate caseiro. #culinária #receita",
-    "fitness":        "Treino do dia: 30 min de corrida + alongamento. #fitness #saúde",
-    "financas":       "Dica: Invista em cripto com cautela. #finanças #cripto #investimento",
-    "games":          "Novo update do jogo traz missões épicas! #games #gaming #aventura",
-    "viagem":         "Destino incrível: Praias paradisíacas em Bali. #viagem #lifestyle",
-}
-
+# ---- EFI PIX ----
+EFI_PIX_EXPIRACAO   = 3600
 
 # ---- DB ----
 
 def get_db():
-    conn = sqlite3.connect('nichopost.db')
+    conn = sqlite3.connect('staking.db')
     conn.row_factory = sqlite3.Row
     return conn
-
 
 def init_db():
     conn = get_db()
@@ -63,45 +43,29 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
+            email TEXT,
             password TEXT NOT NULL,
-            saldo REAL DEFAULT 0,
-            is_worker INTEGER DEFAULT 0,
-            subscribed INTEGER DEFAULT 0
+            saldo_disponivel REAL DEFAULT 0,
+            saldo_em_staking REAL DEFAULT 0,
+            total_ganho REAL DEFAULT 0,
+            total_depositado REAL DEFAULT 0,
+            total_sacado REAL DEFAULT 0,
+            ultimo_collect DATETIME,
+            data_cadastro DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_admin INTEGER DEFAULT 0,
+            ativo INTEGER DEFAULT 1
         );
-        CREATE TABLE IF NOT EXISTS contas (
+        CREATE TABLE IF NOT EXISTS aportes (
             id INTEGER PRIMARY KEY,
-            nome TEXT UNIQUE NOT NULL,
-            seguidores INTEGER DEFAULT 0,
-            nicho TEXT,
-            usuario TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS agendamentos (
-            id INTEGER PRIMARY KEY,
-            conta TEXT,
-            conteudo TEXT,
-            data TEXT
-        );
-        CREATE TABLE IF NOT EXISTS campanhas (
-            id INTEGER PRIMARY KEY,
-            nome TEXT,
-            alcance INTEGER DEFAULT 0,
-            cliques INTEGER DEFAULT 0,
-            custo REAL,
-            nicho TEXT
-        );
-        CREATE TABLE IF NOT EXISTS tarefas (
-            id INTEGER PRIMARY KEY,
-            tipo TEXT NOT NULL,
-            quantidade INTEGER NOT NULL,
-            nicho TEXT,
+            usuario TEXT NOT NULL,
+            valor REAL NOT NULL,
+            txid TEXT,
+            metodo TEXT DEFAULT 'usdt',
             status TEXT DEFAULT 'pendente',
-            trabalhador TEXT,
-            proof TEXT,
-            contratante TEXT NOT NULL,
-            valor_total REAL NOT NULL,
-            recompensa REAL NOT NULL,
-            conta TEXT NOT NULL,
-            data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
+            data_aporte DATETIME DEFAULT CURRENT_TIMESTAMP,
+            data_aprovacao DATETIME,
+            aprovado_por TEXT,
+            lock_ate DATETIME
         );
         CREATE TABLE IF NOT EXISTS saques (
             id INTEGER PRIMARY KEY,
@@ -111,7 +75,27 @@ def init_db():
             taxa REAL NOT NULL,
             valor_liquido REAL NOT NULL,
             status TEXT DEFAULT 'pendente',
-            data_solicitacao DATETIME DEFAULT CURRENT_TIMESTAMP
+            txid_saida TEXT,
+            data_solicitacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+            data_processamento DATETIME
+        );
+        CREATE TABLE IF NOT EXISTS rendimentos (
+            id INTEGER PRIMARY KEY,
+            usuario TEXT NOT NULL,
+            valor REAL NOT NULL,
+            percentual REAL NOT NULL,
+            saldo_base REAL NOT NULL,
+            tipo TEXT DEFAULT 'diario',
+            data_evento DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS movimentacoes (
+            id INTEGER PRIMARY KEY,
+            usuario TEXT NOT NULL,
+            tipo TEXT NOT NULL,
+            valor REAL NOT NULL,
+            descricao TEXT,
+            referencia TEXT,
+            data_evento DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS pix_cobrancas (
             id INTEGER PRIMARY KEY,
@@ -126,60 +110,54 @@ def init_db():
             e2eid TEXT,
             webhook_recebido INTEGER DEFAULT 0,
             creditado INTEGER DEFAULT 0,
-            origem TEXT DEFAULT 'efi_pix',
             data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-        CREATE TABLE IF NOT EXISTS movimentacoes (
-            id INTEGER PRIMARY KEY,
-            usuario TEXT NOT NULL,
-            tipo TEXT NOT NULL,
-            valor REAL NOT NULL,
-            descricao TEXT,
-            referencia TEXT,
-            data_evento DATETIME DEFAULT CURRENT_TIMESTAMP
+        CREATE TABLE IF NOT EXISTS config_plataforma (
+            chave TEXT PRIMARY KEY,
+            valor TEXT NOT NULL,
+            atualizado_em DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     ''')
 
+    # Admin padrão
     if conn.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0:
-        for u in [
-            ('admin',   generate_password_hash('87347748'), 1000, 1, 1),
-            ('worker1', generate_password_hash('pass'),       10, 1, 0),
-            ('user1',   generate_password_hash('pass'),       50, 0, 1),
-        ]:
-            conn.execute('INSERT INTO users (username,password,saldo,is_worker,subscribed) VALUES(?,?,?,?,?)', u)
+        conn.execute(
+            'INSERT INTO users (username,email,password,saldo_disponivel,is_admin) VALUES(?,?,?,?,?)',
+            ('admin', 'admin@admin.com', generate_password_hash('admin123'), 0, 1)
+        )
 
-    if conn.execute('SELECT COUNT(*) FROM contas').fetchone()[0] == 0:
-        for c in [
-            ('@conta_biblica',     1250, 'biblico', 'admin'),
-            ('@futebol_news',      3400, 'futebol', 'admin'),
-            ('@politica_atual',     890, 'politica', 'admin'),
-            ('@entretenimento_fun',2100, 'entretenimento', 'admin'),
-            ('@pump_sniper',        500, 'financas', 'admin'),
-        ]:
-            conn.execute('INSERT INTO contas (nome,seguidores,nicho,usuario) VALUES(?,?,?,?)', c)
-
-    if conn.execute('SELECT COUNT(*) FROM agendamentos').fetchone()[0] == 0:
-        for a in [
-            ('@conta_biblica',  'Post bíblico',     '2026-04-20T10:00'),
-            ('@futebol_news',   'Análise de jogo',  '2026-04-21T14:00'),
-            ('@politica_atual', 'Notícia política', '2026-04-22T18:00'),
-        ]:
-            conn.execute('INSERT INTO agendamentos (conta,conteudo,data) VALUES(?,?,?)', a)
-
-    if conn.execute('SELECT COUNT(*) FROM campanhas').fetchone()[0] == 0:
-        for c in [
-            ('Campanha Bíblica',  5000, 150, 50,  'biblico'),
-            ('Campanha Futebol', 12000, 400, 120, 'futebol'),
-            ('Campanha Política', 3200,  80,  30, 'politica'),
-        ]:
-            conn.execute('INSERT INTO campanhas (nome,alcance,cliques,custo,nicho) VALUES(?,?,?,?,?)', c)
+    # Config padrão
+    defaults = [
+        ('rendimento_diario', str(RENDIMENTO_DIARIO)),
+        ('aporte_minimo', str(APORTE_MINIMO)),
+        ('saque_minimo', str(SAQUE_MINIMO)),
+        ('taxa_saque', str(TAXA_SAQUE)),
+        ('lock_dias', str(LOCK_DIAS)),
+        ('carteira_deposito', CARTEIRA_DEPOSITO),
+        ('plataforma_nome', PLATAFORMA_NOME),
+        ('total_usuarios', '0'),
+        ('total_em_staking', '0'),
+    ]
+    for chave, valor in defaults:
+        conn.execute('INSERT OR IGNORE INTO config_plataforma (chave,valor) VALUES(?,?)', (chave, valor))
 
     conn.commit()
     conn.close()
 
-
 init_db()
 
+def get_config(chave, default=None):
+    conn = get_db()
+    row = conn.execute('SELECT valor FROM config_plataforma WHERE chave=?', (chave,)).fetchone()
+    conn.close()
+    return row['valor'] if row else default
+
+def set_config(chave, valor):
+    conn = get_db()
+    conn.execute('INSERT OR REPLACE INTO config_plataforma (chave,valor,atualizado_em) VALUES(?,?,?)',
+                 (chave, str(valor), datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
 
 # ---- DECORATORS ----
 
@@ -188,148 +166,193 @@ def require_login(f):
     def decorated(*args, **kwargs):
         if 'user' not in session:
             if request.path.startswith('/api/'):
-                return jsonify({"error": "Nao autenticado"}), 401
-            return redirect(url_for('login'))
+                return jsonify({"error": "Não autenticado"}), 401
+            return redirect(url_for('login_page'))
         return f(*args, **kwargs)
     return decorated
 
+def require_admin(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user' not in session:
+            return jsonify({"error": "Não autenticado"}), 401
+        conn = get_db()
+        row = conn.execute('SELECT is_admin FROM users WHERE username=?', (session['user'],)).fetchone()
+        conn.close()
+        if not row or not row['is_admin']:
+            return jsonify({"error": "Acesso negado"}), 403
+        return f(*args, **kwargs)
+    return decorated
 
-# ---- AUTH PAGES (HTML puro, sem Jinja2) ----
-
-LOGIN_HTML = """<!doctype html>
-<html><head><meta charset="utf-8"><title>NichoPost Login</title>
-<style>
-body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;
-min-height:100vh;margin:0;background:#f0f2f5}
-.box{background:#fff;padding:2rem;border-radius:12px;width:300px;
-box-shadow:0 2px 12px rgba(0,0,0,.1)}
-h2{margin:0 0 1.5rem;font-size:1.2rem;color:#111}
-input{width:100%;padding:9px;margin:3px 0 12px;border:1px solid #ddd;
-border-radius:7px;box-sizing:border-box;font-size:14px}
-button{width:100%;padding:10px;background:#378ADD;color:#fff;border:none;
-border-radius:7px;cursor:pointer;font-size:14px;font-weight:500}
-button:hover{background:#185FA5}
-.err{color:red;font-size:13px;margin-bottom:10px}
-a{font-size:13px;color:#378ADD;text-decoration:none}
-p{margin:12px 0 0}
-</style></head>
-<body><div class="box">
-<h2>NichoPost</h2>
-__ERROR__
-<form method="post">
-<input name="username" placeholder="Usuário" required>
-<input name="password" type="password" placeholder="Senha" required>
-<button type="submit">Entrar</button>
-</form>
-<p><a href="/register">Criar conta grátis</a></p>
-</div></body></html>"""
-
-REGISTER_HTML = """<!doctype html>
-<html><head><meta charset="utf-8"><title>NichoPost Registro</title>
-<style>
-body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;
-min-height:100vh;margin:0;background:#f0f2f5}
-.box{background:#fff;padding:2rem;border-radius:12px;width:320px;
-box-shadow:0 2px 12px rgba(0,0,0,.1)}
-h2{margin:0 0 1.5rem;font-size:1.2rem;color:#111}
-input[type=text],input[type=password]{width:100%;padding:9px;margin:3px 0 12px;
-border:1px solid #ddd;border-radius:7px;box-sizing:border-box;font-size:14px}
-.role-options{margin:15px 0}
-.role-option{display:flex;align-items:center;gap:7px;margin-bottom:10px}
-.role-option input[type=radio]{margin:0}
-.role-option label{font-size:13px;cursor:pointer;margin:0}
-button{width:100%;padding:10px;background:#378ADD;color:#fff;border:none;
-border-radius:7px;cursor:pointer;font-size:14px;font-weight:500}
-button:hover{background:#185FA5}
-.err{color:red;font-size:13px;margin-bottom:10px}
-a{font-size:13px;color:#378ADD;text-decoration:none}
-p{margin:12px 0 0}
-</style></head>
-<body><div class="box">
-<h2>Criar conta</h2>
-__ERROR__
-<form method="post">
-<input type="text" name="username" placeholder="Usuário" required>
-<input type="password" name="password" placeholder="Senha" required>
-<div class="role-options">
-    <p style="font-size:13px;margin:0 0 10px;color:#555">Escolha seu perfil:</p>
-    <div class="role-option">
-        <input type="radio" id="worker" name="role" value="worker" required>
-        <label for="worker">👷 Quero ser trabalhador e ganhar USDT executando tarefas</label>
-    </div>
-    <div class="role-option">
-        <input type="radio" id="contractor" name="role" value="contractor" required>
-        <label for="contractor">📋 Quero ser contratante e criar tarefas para terceiros</label>
-    </div>
-</div>
-<button type="submit">Registrar</button>
-</form>
-<p><a href="/login">Já tenho conta</a></p>
-</div></body></html>"""
-
+# ---- HTML PAGES ----
 
 def html_resp(html, code=200):
     r = make_response(html, code)
     r.headers['Content-Type'] = 'text/html; charset=utf-8'
     return r
 
+AUTH_HTML = """<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__ — CryptoYield</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Montserrat',sans-serif;
+  background:#080808;
+  color:#e8d5a3;
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(212,175,55,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(212,175,55,0.03) 0%, transparent 50%);
+}
+.card{
+  background:linear-gradient(135deg,#0f0f0f 0%,#111008 100%);
+  border:1px solid rgba(212,175,55,0.2);
+  border-radius:4px;
+  padding:48px 40px;
+  width:380px;
+  box-shadow:0 0 60px rgba(212,175,55,0.05), inset 0 1px 0 rgba(212,175,55,0.1);
+  position:relative;
+}
+.card::before{
+  content:'';
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:60px;height:2px;
+  background:linear-gradient(90deg,transparent,#d4af37,transparent);
+}
+.logo{
+  font-family:'Cormorant Garamond',serif;
+  font-size:28px;font-weight:300;
+  color:#d4af37;
+  letter-spacing:4px;
+  text-align:center;
+  margin-bottom:8px;
+}
+.logo-sub{font-size:10px;letter-spacing:6px;color:#7a6a3a;text-align:center;margin-bottom:36px;text-transform:uppercase}
+h2{font-size:12px;letter-spacing:3px;color:#7a6a3a;text-transform:uppercase;margin-bottom:28px;text-align:center}
+.field{margin-bottom:16px}
+label{display:block;font-size:10px;letter-spacing:2px;color:#7a6a3a;text-transform:uppercase;margin-bottom:6px}
+input{
+  width:100%;padding:12px 14px;
+  background:rgba(212,175,55,0.04);
+  border:1px solid rgba(212,175,55,0.15);
+  border-radius:2px;
+  color:#e8d5a3;font-family:'Montserrat',sans-serif;font-size:13px;
+  outline:none;transition:border-color .2s;
+}
+input:focus{border-color:rgba(212,175,55,0.4)}
+button{
+  width:100%;padding:14px;margin-top:8px;
+  background:linear-gradient(135deg,#c9a227,#d4af37);
+  color:#080808;font-family:'Montserrat',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;
+  border:none;border-radius:2px;cursor:pointer;
+  transition:opacity .2s;
+}
+button:hover{opacity:.85}
+.err{color:#e05252;font-size:11px;margin-bottom:16px;letter-spacing:1px;text-align:center}
+.link{text-align:center;margin-top:20px;font-size:11px;color:#7a6a3a}
+.link a{color:#d4af37;text-decoration:none}
+.divider{height:1px;background:rgba(212,175,55,0.1);margin:20px 0}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">CRYPTOYIELD</div>
+  <div class="logo-sub">Digital Asset Staking</div>
+  <h2>__SUBTITLE__</h2>
+  __ERROR__
+  __FORM__
+</div>
+</body>
+</html>"""
+
+LOGIN_FORM = """
+<form method="post">
+<div class="field"><label>Usuário</label><input name="username" placeholder="seu_usuario" required autocomplete="username"></div>
+<div class="field"><label>Senha</label><input name="password" type="password" placeholder="••••••••" required autocomplete="current-password"></div>
+<button type="submit">Acessar plataforma</button>
+</form>
+<div class="link">Novo investidor? <a href="/register">Criar conta</a></div>
+"""
+
+REGISTER_FORM = """
+<form method="post">
+<div class="field"><label>Usuário</label><input name="username" placeholder="seu_usuario" required></div>
+<div class="field"><label>E-mail</label><input name="email" type="email" placeholder="email@exemplo.com" required></div>
+<div class="field"><label>Senha</label><input name="password" type="password" placeholder="Mínimo 6 caracteres" required></div>
+<button type="submit">Criar conta gratuita</button>
+</form>
+<div class="link">Já tem conta? <a href="/login">Entrar</a></div>
+"""
+
+def render_auth(title, subtitle, form, error=''):
+    err_html = f'<div class="err">{error}</div>' if error else ''
+    return AUTH_HTML\
+        .replace('__TITLE__', title)\
+        .replace('__SUBTITLE__', subtitle)\
+        .replace('__ERROR__', err_html)\
+        .replace('__FORM__', form)
+
+# ---- ROUTES: AUTH ----
 
 @app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = ''
+def login_page():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         conn = get_db()
-        user = conn.execute('SELECT * FROM users WHERE username=?', (username,)).fetchone()
+        user = conn.execute('SELECT * FROM users WHERE username=? AND ativo=1', (username,)).fetchone()
         conn.close()
         if user and check_password_hash(user['password'], password):
             session['user'] = user['username']
-            return redirect(url_for('index'))
-        error = '<p class="err">Usuário ou senha inválidos.</p>'
-    return html_resp(LOGIN_HTML.replace('__ERROR__', error))
-
+            session['is_admin'] = bool(user['is_admin'])
+            return redirect(url_for('dashboard'))
+        return html_resp(render_auth('Login', 'Acesso à conta', LOGIN_FORM, 'Credenciais inválidas'))
+    return html_resp(render_auth('Login', 'Acesso à conta', LOGIN_FORM))
 
 @app.route('/register', methods=['GET', 'POST'])
-def register():
-    error = ''
+def register_page():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
-        role = request.form.get('role', '')
-        is_worker = 1 if role == 'worker' else 0
-        if not username or not password or not role:
-            error = '<p class="err">Preencha todos os campos.</p>'
-        else:
-            conn = get_db()
-            try:
-                conn.execute(
-                    'INSERT INTO users (username,password,is_worker) VALUES(?,?,?)',
-                    (username, generate_password_hash(password), is_worker)
-                )
-                conn.commit()
-                session['user'] = username
-                return redirect(url_for('index'))
-            except sqlite3.IntegrityError:
-                error = '<p class="err">Usuário já existe.</p>'
-            finally:
-                conn.close()
-    return html_resp(REGISTER_HTML.replace('__ERROR__', error))
-
+        if len(password) < 6:
+            return html_resp(render_auth('Registro', 'Criar conta', REGISTER_FORM, 'Senha mínima: 6 caracteres'))
+        conn = get_db()
+        try:
+            conn.execute('INSERT INTO users (username,email,password) VALUES(?,?,?)',
+                         (username, email, generate_password_hash(password)))
+            conn.commit()
+            session['user'] = username
+            session['is_admin'] = False
+            return redirect(url_for('dashboard'))
+        except sqlite3.IntegrityError:
+            return html_resp(render_auth('Registro', 'Criar conta', REGISTER_FORM, 'Usuário já existe'))
+        finally:
+            conn.close()
+    return html_resp(render_auth('Registro', 'Criar conta', REGISTER_FORM))
 
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
-    return redirect(url_for('login'))
-
-
-# ---- FRONTEND ----
+    session.clear()
+    return redirect(url_for('login_page'))
 
 @app.route('/')
-@require_login
-def index():
-    return send_file('nichopost_usdt_platform.html')
+def root():
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login_page'))
 
+@app.route('/dashboard')
+@require_login
+def dashboard():
+    return send_file('staking_dashboard.html')
 
 # ---- API: ME ----
 
@@ -337,521 +360,418 @@ def index():
 @require_login
 def api_me():
     conn = get_db()
-    row = conn.execute('SELECT username,saldo,is_worker,subscribed FROM users WHERE username=?', (session['user'],)).fetchone()
+    user = conn.execute('SELECT * FROM users WHERE username=?', (session['user'],)).fetchone()
+
+    # Calcular rendimento disponível para coletar
+    rendimento_pendente = 0.0
+    if user['saldo_em_staking'] > 0:
+        ultimo = user['ultimo_collect']
+        if ultimo:
+            try:
+                dt_ultimo = datetime.fromisoformat(ultimo)
+            except:
+                dt_ultimo = datetime.now() - timedelta(days=1)
+        else:
+            # Verificar data do primeiro aporte aprovado
+            primeiro_aporte = conn.execute(
+                "SELECT data_aprovacao FROM aportes WHERE usuario=? AND status='aprovado' ORDER BY data_aprovacao ASC LIMIT 1",
+                (session['user'],)
+            ).fetchone()
+            if primeiro_aporte and primeiro_aporte['data_aprovacao']:
+                try:
+                    dt_ultimo = datetime.fromisoformat(primeiro_aporte['data_aprovacao'])
+                except:
+                    dt_ultimo = datetime.now() - timedelta(days=1)
+            else:
+                dt_ultimo = datetime.now()
+
+        agora = datetime.now()
+        diff = agora - dt_ultimo
+        horas = diff.total_seconds() / 3600
+        dias_fracionados = horas / 24
+        taxa_diaria = float(get_config('rendimento_diario', '0.02'))
+        rendimento_pendente = round(user['saldo_em_staking'] * taxa_diaria * dias_fracionados, 6)
+        rendimento_pendente = max(0, rendimento_pendente)
+
     conn.close()
+
+    taxa_diaria = float(get_config('rendimento_diario', '0.02'))
+    aporte_min = float(get_config('aporte_minimo', '50'))
+    saque_min = float(get_config('saque_minimo', '10'))
+    taxa_saque = float(get_config('taxa_saque', '0.03'))
+    carteira = get_config('carteira_deposito', CARTEIRA_DEPOSITO)
+
     return jsonify({
-        "user":           row['username'],
-        "saldo":          round(row['saldo'], 4),
-        "is_worker":      bool(row['is_worker']),
-        "subscribed":     bool(row['subscribed']),
-        "nichos":         nichos,
-        "precos":         PRECOS,
-        "carteira_admin": CARTEIRA_ADMIN,
-        "plano_preco":    PLANO_PRECO,
+        'user': user['username'],
+        'email': user['email'],
+        'is_admin': bool(user['is_admin']),
+        'saldo_disponivel': round(float(user['saldo_disponivel']), 6),
+        'saldo_em_staking': round(float(user['saldo_em_staking']), 6),
+        'total_ganho': round(float(user['total_ganho']), 6),
+        'total_depositado': round(float(user['total_depositado']), 6),
+        'total_sacado': round(float(user['total_sacado']), 6),
+        'rendimento_pendente': round(rendimento_pendente, 6),
+        'taxa_diaria': taxa_diaria,
+        'taxa_diaria_pct': round(taxa_diaria * 100, 2),
+        'aporte_minimo': aporte_min,
+        'saque_minimo': saque_min,
+        'taxa_saque_pct': round(taxa_saque * 100, 2),
+        'carteira_deposito': carteira,
+        'lock_dias': int(get_config('lock_dias', '7')),
     })
 
+# ---- API: COLETAR RENDIMENTO ----
 
-# ---- API: CONFIG ----
-
-@app.route('/api/config')
-def api_config():
-    return jsonify({
-        "carteira_admin":      CARTEIRA_ADMIN,
-        "rede":                "Ethereum ERC-20",
-        "plano":               PLANO_NOME,
-        "plano_preco":         PLANO_PRECO,
-        "precos":              PRECOS,
-        "taxa_plataforma_pct": TAXA_PLATAFORMA * 100,
-        "taxa_saque_pct":      TAXA_SAQUE * 100,
-    })
-
-
-# ---- API: DASHBOARD ----
-
-@app.route('/api/dashboard')
+@app.route('/api/coletar', methods=['POST'])
 @require_login
-def api_dashboard():
+def api_coletar():
     conn = get_db()
-    num_contas  = conn.execute('SELECT COUNT(*) FROM contas WHERE usuario=?', (session['user'],)).fetchone()[0]
-    num_posts   = conn.execute('SELECT COUNT(*) FROM agendamentos WHERE conta IN (SELECT nome FROM contas WHERE usuario=?)', (session['user'],)).fetchone()[0]
-    # A tabela campanhas não possui a coluna "conta".
-    # Mantemos o somatório global das campanhas cadastradas.
-    orcamento   = conn.execute('SELECT COALESCE(SUM(custo),0) FROM campanhas').fetchone()[0]
-    num_tarefas = conn.execute("SELECT COUNT(*) FROM tarefas WHERE status='pendente' AND conta IN (SELECT nome FROM contas WHERE usuario=?)", (session['user'],)).fetchone()[0]
-    conn.close()
-    return jsonify({
-        "contas": num_contas,
-        "posts_agendados": num_posts,
-        "orcamento_anuncios": round(orcamento, 2),
-        "tarefas_marketplace": num_tarefas,
-    })
+    user = conn.execute('SELECT * FROM users WHERE username=?', (session['user'],)).fetchone()
 
+    if user['saldo_em_staking'] <= 0:
+        conn.close()
+        return jsonify({'error': 'Você não possui saldo em staking.'}), 400
 
-# ---- API: CONTAS ----
-
-@app.route('/api/contas', methods=['GET', 'POST'])
-@require_login
-def api_contas():
-    conn = get_db()
-    if request.method == 'POST':
-        data  = request.json or {}
-        nome  = data.get('nome', '').strip()
-        nicho = data.get('nicho', '').strip()
-        if not nome or not nicho:
-            conn.close()
-            return jsonify({"error": "nome e nicho sao obrigatorios"}), 400
+    ultimo = user['ultimo_collect']
+    if ultimo:
         try:
-            conn.execute('INSERT INTO contas (nome,nicho,usuario) VALUES(?,?,?)', (nome, nicho, session['user']))
-            conn.commit()
+            dt_ultimo = datetime.fromisoformat(ultimo)
+        except:
+            dt_ultimo = datetime.now() - timedelta(days=1)
+    else:
+        primeiro_aporte = conn.execute(
+            "SELECT data_aprovacao FROM aportes WHERE usuario=? AND status='aprovado' ORDER BY data_aprovacao ASC LIMIT 1",
+            (session['user'],)
+        ).fetchone()
+        if primeiro_aporte and primeiro_aporte['data_aprovacao']:
+            try:
+                dt_ultimo = datetime.fromisoformat(primeiro_aporte['data_aprovacao'])
+            except:
+                dt_ultimo = datetime.now() - timedelta(days=1)
+        else:
             conn.close()
-            return jsonify({"message": "Conta adicionada"}), 201
-        except sqlite3.IntegrityError:
-            conn.close()
-            return jsonify({"error": "Conta ja existe"}), 409
-    rows = conn.execute('SELECT nome,seguidores,nicho FROM contas WHERE usuario=?', (session['user'],)).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
+            return jsonify({'error': 'Nenhum aporte aprovado encontrado.'}), 400
 
+    agora = datetime.now()
+    diff = agora - dt_ultimo
+    horas = diff.total_seconds() / 3600
 
-# ---- API: AGENDAMENTOS ----
-
-@app.route('/api/agendamentos', methods=['GET', 'POST'])
-@require_login
-def api_agendamentos():
-    conn = get_db()
-    if request.method == 'POST':
-        data     = request.json or {}
-        conta    = data.get('conta', '').strip()
-        conteudo = data.get('conteudo', '').strip()
-        data_pub = data.get('data', '').strip()
-        if not conta or not conteudo or not data_pub:
-            conn.close()
-            return jsonify({"error": "conta, conteudo e data sao obrigatorios"}), 400
-
-        conta_existe = conn.execute('SELECT COUNT(*) FROM contas WHERE nome=? AND usuario=?', (conta, session['user'])).fetchone()[0]
-        if conta_existe == 0:
-            conn.close()
-            return jsonify({"error": "Conta nao encontrada ou nao pertence ao usuario"}), 403
-
-        conn.execute('INSERT INTO agendamentos (conta,conteudo,data) VALUES(?,?,?)', (conta, conteudo, data_pub))
-        conn.commit()
+    if horas < 1:
+        mins = int((1 - horas) * 60)
         conn.close()
-        return jsonify({"message": "Post agendado"}), 201
-    rows = conn.execute('SELECT conta,conteudo,data FROM agendamentos WHERE conta IN (SELECT nome FROM contas WHERE usuario=?)', (session['user'],)).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
+        return jsonify({'error': f'Aguarde {mins} minuto(s) para coletar novamente.'}), 400
 
+    dias_fracionados = horas / 24
+    taxa_diaria = float(get_config('rendimento_diario', '0.02'))
+    rendimento = round(user['saldo_em_staking'] * taxa_diaria * dias_fracionados, 6)
 
-# ---- API: CAMPANHAS ----
-
-@app.route('/api/campanhas', methods=['GET', 'POST'])
-@require_login
-def api_campanhas():
-    conn = get_db()
-    if request.method == 'POST':
-        data      = request.json or {}
-        nome      = data.get('nome', '').strip()
-        orcamento = float(data.get('orcamento', 0))
-        nicho     = data.get('nicho', '').strip()
-        if not nome or not nicho or orcamento <= 0:
-            conn.close()
-            return jsonify({"error": "nome, nicho e orcamento > 0 sao obrigatorios"}), 400
-        conn.execute('INSERT INTO campanhas (nome,custo,nicho) VALUES(?,?,?)', (nome, orcamento, nicho))
-        conn.commit()
+    if rendimento <= 0:
         conn.close()
-        return jsonify({"message": "Campanha criada"}), 201
-    rows = conn.execute('SELECT nome,alcance,cliques,custo,nicho FROM campanhas').fetchall()
+        return jsonify({'error': 'Rendimento ainda não disponível.'}), 400
+
+    conn.execute('UPDATE users SET saldo_disponivel=saldo_disponivel+?, total_ganho=total_ganho+?, ultimo_collect=? WHERE username=?',
+                 (rendimento, rendimento, agora.isoformat(), session['user']))
+    conn.execute('INSERT INTO rendimentos (usuario,valor,percentual,saldo_base) VALUES(?,?,?,?)',
+                 (session['user'], rendimento, taxa_diaria * dias_fracionados, user['saldo_em_staking']))
+    conn.execute('INSERT INTO movimentacoes (usuario,tipo,valor,descricao) VALUES(?,?,?,?)',
+                 (session['user'], 'RENDIMENTO', rendimento, f'Rendimento coletado — {round(taxa_diaria*100,2)}%/dia × {round(dias_fracionados,2)} dias'))
+    conn.commit()
     conn.close()
-    return jsonify([dict(r) for r in rows])
 
-
-# ---- API: CONTEUDO ----
-
-@app.route('/api/conteudo/<nicho>')
-@require_login
-def api_conteudo(nicho):
-    texto = conteudos.get(nicho)
-    if not texto:
-        return jsonify({"error": "Nicho nao encontrado", "disponiveis": nichos}), 404
-    return jsonify({"nicho": nicho, "conteudo": texto})
-
-
-# ---- API: CALCULADORA ----
-
-@app.route('/api/marketplace/calcular', methods=['POST'])
-@require_login
-def api_calcular():
-    data        = request.json or {}
-    curtidas    = max(0, int(data.get('curtidas',    0)))
-    comentarios = max(0, int(data.get('comentarios', 0)))
-    seguidores  = max(0, int(data.get('seguidores',  0)))
-    stories     = max(0, int(data.get('stories',     0)))
-    c_c  = curtidas    * PRECOS['curtida']
-    c_co = comentarios * PRECOS['comentario']
-    c_s  = seguidores  * PRECOS['seguir']
-    c_st = stories     * PRECOS['stories']
-    sub  = c_c + c_co + c_s + c_st
-    taxa = sub * TAXA_PLATAFORMA
     return jsonify({
-        "curtidas":    round(c_c,  4),
-        "comentarios": round(c_co, 4),
-        "seguidores":  round(c_s,  4),
-        "stories":     round(c_st, 4),
-        "subtotal":    round(sub,  4),
-        "taxa_10pct":  round(taxa, 4),
-        "total":       round(sub + taxa, 4),
+        'message': f'Rendimento de {rendimento:.6f} USDT coletado com sucesso!',
+        'valor': rendimento,
+        'horas': round(horas, 2),
     })
 
+# ---- API: SOLICITAR APORTE ----
 
-# ---- API: ASSINATURA ----
-
-@app.route('/api/assinar', methods=['POST'])
+@app.route('/api/aporte', methods=['POST'])
 @require_login
-def assinar():
+def api_aporte():
+    data = request.json or {}
+    valor = float(data.get('valor', 0))
+    txid = data.get('txid', '').strip()
+    metodo = data.get('metodo', 'usdt')
+
+    aporte_min = float(get_config('aporte_minimo', '50'))
+    if valor < aporte_min:
+        return jsonify({'error': f'Aporte mínimo: {aporte_min} USDT'}), 400
+    if not txid:
+        return jsonify({'error': 'Informe o TXID da transação para comprovação.'}), 400
+
     conn = get_db()
-    row  = conn.execute('SELECT saldo,subscribed FROM users WHERE username=?', (session['user'],)).fetchone()
-    if row['subscribed']:
+    # Verificar TXID duplicado
+    existe = conn.execute('SELECT id FROM aportes WHERE txid=?', (txid,)).fetchone()
+    if existe:
         conn.close()
-        return jsonify({"message": "Voce ja possui o NichoPost Pro"}), 200
-    if row['saldo'] < PLANO_PRECO:
-        conn.close()
-        return jsonify({"error": "Saldo insuficiente. Deposite USDT e tente novamente."}), 403
-    conn.execute('UPDATE users SET saldo=saldo-?, subscribed=1 WHERE username=?', (PLANO_PRECO, session['user']))
+        return jsonify({'error': 'TXID já registrado.'}), 409
+
+    conn.execute('INSERT INTO aportes (usuario,valor,txid,metodo,status) VALUES(?,?,?,?,?)',
+                 (session['user'], valor, txid, metodo, 'pendente'))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Assinatura NichoPost Pro ativada com sucesso!"}), 200
+    return jsonify({'message': 'Aporte registrado! Aguarde a confirmação do administrador.', 'valor': valor}), 201
 
-
-# ---- API: TAREFAS ----
-
-@app.route('/api/tarefas', methods=['GET', 'POST'])
-@require_login
-def api_tarefas():
-    conn = get_db()
-    if request.method == 'POST':
-        row = conn.execute('SELECT subscribed,saldo FROM users WHERE username=?', (session['user'],)).fetchone()
-        if not row['subscribed']:
-            conn.close()
-            return jsonify({"error": "Assine o NichoPost Pro para contratar tarefas"}), 403
-
-        data       = request.json or {}
-        tipo       = data.get('tipo', '').strip()
-        quantidade = max(1, int(data.get('quantidade', 1)))
-        nicho      = data.get('nicho', 'geral').strip()
-        conta      = data.get('conta', '').strip()
-
-        if not tipo or not conta:
-            conn.close()
-            return jsonify({"error": "tipo e conta sao obrigatorios"}), 400
-        if tipo not in PRECOS:
-            conn.close()
-            return jsonify({"error": "Tipo invalido. Use: curtida, comentario, seguir, stories ou story"}), 400
-
-        recompensa  = PRECOS[tipo]
-        subtotal    = recompensa * quantidade
-        valor_total = round(subtotal + subtotal * TAXA_PLATAFORMA, 6)
-
-        if row['saldo'] < valor_total:
-            conn.close()
-            return jsonify({"error": "Saldo insuficiente. Necessario: " + str(valor_total) + " USDT"}), 403
-
-        conn.execute('UPDATE users SET saldo=saldo-? WHERE username=?', (valor_total, session['user']))
-        conn.execute(
-            'INSERT INTO tarefas (tipo,quantidade,nicho,contratante,valor_total,recompensa,conta,status) VALUES(?,?,?,?,?,?,?,?)',
-            (tipo, quantidade, nicho, session['user'], valor_total, recompensa, conta, 'pendente')
-        )
-        conn.commit()
-        conn.close()
-        return jsonify({
-            "message": str(quantidade) + " " + tipo + "(s) contratada(s) para " + conta,
-            "valor_total": valor_total,
-            "recompensa_por_acao": recompensa,
-        }), 201
-
-    rows = conn.execute(
-        "SELECT id,tipo,quantidade,nicho,status,recompensa,valor_total,conta,trabalhador FROM tarefas WHERE (trabalhador IS NULL OR trabalhador=?) AND status != 'cancelada' ORDER BY data_criacao DESC",
-        (session['user'],)
-    ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
-
-@app.route('/api/tarefas/disponiveis')
-@require_login
-def tarefas_disponiveis():
-    conn = get_db()
-    rows = conn.execute(
-        "SELECT id,tipo,quantidade,conta,nicho,recompensa,valor_total FROM tarefas WHERE trabalhador IS NULL AND status='pendente' AND conta IN (SELECT nome FROM contas WHERE usuario=?) ORDER BY data_criacao DESC",
-        (session['user'],)
-    ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
-
-@app.route('/api/minhas_tarefas')
-@require_login
-def minhas_tarefas():
-    conn = get_db()
-    rows = conn.execute(
-        'SELECT id,tipo,quantidade,nicho,status,recompensa,valor_total,conta FROM tarefas WHERE trabalhador=? ORDER BY data_criacao DESC',
-        (session['user'],)
-    ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
-
-@app.route('/api/minhas_tarefas_contratadas')
-@require_login
-def minhas_tarefas_contratadas():
-    conn = get_db()
-    rows = conn.execute(
-        "SELECT id,tipo,quantidade,status,recompensa,valor_total,conta,trabalhador FROM tarefas WHERE contratante=? AND status != 'cancelada' ORDER BY data_criacao DESC",
-        (session['user'],)
-    ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
-
-# ---- API: PEGAR TAREFA ----
-
-@app.route('/api/pegar_tarefa/<int:tarefa_id>', methods=['POST'])
-@require_login
-def pegar_tarefa(tarefa_id):
-    conn = get_db()
-    row = conn.execute('SELECT is_worker FROM users WHERE username=?', (session['user'],)).fetchone()
-    if not row or not row['is_worker']:
-        conn.close()
-        return jsonify({"error": "Registre-se como trabalhador para pegar tarefas"}), 403
-    tarefa = conn.execute(
-        "SELECT id FROM tarefas WHERE id=? AND trabalhador IS NULL AND status='pendente'",
-        (tarefa_id,)
-    ).fetchone()
-    if not tarefa:
-        conn.close()
-        return jsonify({"error": "Tarefa nao disponivel"}), 404
-    conn.execute("UPDATE tarefas SET trabalhador=?, status='em_andamento' WHERE id=?", (session['user'], tarefa_id))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Tarefa iniciada! Envie o comprovante para receber."}), 200
-
-
-# ---- API: VERIFICAR TAREFA ----
-
-@app.route('/api/verificar/<int:tarefa_id>', methods=['POST'])
-@require_login
-def verificar_tarefa(tarefa_id):
-    if 'proof' not in request.files:
-        return jsonify({"error": "Envie o comprovante (screenshot)"}), 400
-    arquivo = request.files['proof']
-    if not arquivo.filename:
-        return jsonify({"error": "Arquivo vazio"}), 400
-    ext = os.path.splitext(arquivo.filename)[1].lower()
-    if ext not in ('.png', '.jpg', '.jpeg', '.webp', '.gif'):
-        return jsonify({"error": "Formato invalido. Use png/jpg/jpeg/webp"}), 400
-    filename = str(uuid.uuid4()) + ext
-    arquivo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    conn = get_db()
-    tarefa = conn.execute(
-        "SELECT * FROM tarefas WHERE id=? AND trabalhador=? AND status='em_andamento'",
-        (tarefa_id, session['user'])
-    ).fetchone()
-    if not tarefa:
-        conn.close()
-        return jsonify({"error": "Tarefa nao encontrada ou nao pertence a voce"}), 404
-    ganho = round(tarefa['recompensa'] * tarefa['quantidade'], 6)
-    conn.execute("UPDATE tarefas SET status='concluida', proof=? WHERE id=?", (filename, tarefa_id))
-    conn.execute('UPDATE users SET saldo=saldo+? WHERE username=?', (ganho, session['user']))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Comprovante aceito! Voce ganhou " + str(ganho) + " USDT", "ganho": ganho}), 200
-
-
-# ---- API: SALDO ----
-
-@app.route('/api/saldo_trabalhador')
-@require_login
-def saldo_trabalhador():
-    conn = get_db()
-    row    = conn.execute('SELECT saldo FROM users WHERE username=?', (session['user'],)).fetchone()
-    ganhos = conn.execute(
-        "SELECT COALESCE(SUM(recompensa*quantidade),0) FROM tarefas WHERE trabalhador=? AND status='concluida'",
-        (session['user'],)
-    ).fetchone()[0]
-    total  = conn.execute(
-        "SELECT COUNT(*) FROM tarefas WHERE trabalhador=? AND status='concluida'",
-        (session['user'],)
-    ).fetchone()[0]
-    conn.close()
-    return jsonify({
-        "saldo":             round(row['saldo'], 4),
-        "ganhos_totais":     round(ganhos, 4),
-        "tarefas_completas": total,
-    })
-
-
-# ---- API: SAQUE ----
+# ---- API: SOLICITAR SAQUE ----
 
 @app.route('/api/saque', methods=['POST'])
 @require_login
-def solicitar_saque():
-    data     = request.json or {}
-    valor    = float(data.get('valor', 0))
+def api_saque():
+    data = request.json or {}
+    valor = float(data.get('valor', 0))
     carteira = data.get('carteira', '').strip()
-    if valor < 0.01:
-        return jsonify({"error": "Valor minimo para saque: 0.01 USDT"}), 400
+
+    saque_min = float(get_config('saque_minimo', '10'))
+    taxa_pct = float(get_config('taxa_saque', '0.03'))
+
+    if valor < saque_min:
+        return jsonify({'error': f'Saque mínimo: {saque_min} USDT'}), 400
     if not carteira.startswith('0x') or len(carteira) != 42:
-        return jsonify({"error": "Endereco invalido. Use carteira ERC-20 (0x... 42 caracteres)"}), 400
+        return jsonify({'error': 'Carteira ERC-20 inválida. Use 0x... com 42 caracteres.'}), 400
+
     conn = get_db()
-    row  = conn.execute('SELECT saldo FROM users WHERE username=?', (session['user'],)).fetchone()
-    if row['saldo'] < valor:
+    user = conn.execute('SELECT saldo_disponivel FROM users WHERE username=?', (session['user'],)).fetchone()
+    if float(user['saldo_disponivel']) < valor:
         conn.close()
-        return jsonify({"error": "Saldo insuficiente. Disponivel: " + str(round(row['saldo'], 4)) + " USDT"}), 403
-    taxa          = round(valor * TAXA_SAQUE, 6)
-    valor_liquido = round(valor - taxa, 6)
-    conn.execute('UPDATE users SET saldo=saldo-? WHERE username=?', (valor, session['user']))
-    conn.execute(
-        'INSERT INTO saques (usuario,valor,carteira,taxa,valor_liquido,status) VALUES(?,?,?,?,?,?)',
-        (session['user'], valor, carteira, taxa, valor_liquido, 'pendente')
-    )
+        return jsonify({'error': f'Saldo insuficiente. Disponível: {round(float(user["saldo_disponivel"]),4)} USDT'}), 400
+
+    taxa = round(valor * taxa_pct, 6)
+    liquido = round(valor - taxa, 6)
+
+    conn.execute('UPDATE users SET saldo_disponivel=saldo_disponivel-? WHERE username=?', (valor, session['user']))
+    conn.execute('INSERT INTO saques (usuario,valor,carteira,taxa,valor_liquido,status) VALUES(?,?,?,?,?,?)',
+                 (session['user'], valor, carteira, taxa, liquido, 'pendente'))
+    conn.execute('INSERT INTO movimentacoes (usuario,tipo,valor,descricao) VALUES(?,?,?,?)',
+                 (session['user'], 'SAQUE', valor, f'Saque para {carteira[:8]}...{carteira[-4:]}'))
     conn.commit()
     conn.close()
+
     return jsonify({
-        "message":       "Saque solicitado! Voce recebera " + str(valor_liquido) + " USDT apos taxa de " + str(taxa) + " USDT",
-        "valor_bruto":   valor,
-        "taxa_2pct":     taxa,
-        "valor_liquido": valor_liquido,
-        "carteira":      carteira,
-        "status":        "pendente",
-    }), 200
+        'message': f'Saque de {liquido:.4f} USDT solicitado!',
+        'valor_bruto': valor,
+        'taxa': taxa,
+        'valor_liquido': liquido,
+        'status': 'pendente',
+    }), 201
 
+# ---- API: HISTÓRICO ----
 
-@app.route('/api/historico_saques')
+@app.route('/api/historico')
 @require_login
-def historico_saques():
+def api_historico():
+    conn = get_db()
+    movs = conn.execute(
+        'SELECT tipo,valor,descricao,data_evento FROM movimentacoes WHERE usuario=? ORDER BY id DESC LIMIT 50',
+        (session['user'],)
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in movs])
+
+@app.route('/api/meus_aportes')
+@require_login
+def api_meus_aportes():
     conn = get_db()
     rows = conn.execute(
-        'SELECT valor,carteira,taxa,valor_liquido,status,data_solicitacao FROM saques WHERE usuario=? ORDER BY data_solicitacao DESC LIMIT 20',
+        'SELECT valor,txid,metodo,status,data_aporte FROM aportes WHERE usuario=? ORDER BY id DESC LIMIT 20',
         (session['user'],)
     ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
-
-# ---- UPLOADS ----
-
-@app.route('/api/uploads/<filename>')
+@app.route('/api/meus_saques')
 @require_login
-def serve_upload(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+def api_meus_saques():
+    conn = get_db()
+    rows = conn.execute(
+        'SELECT valor,carteira,taxa,valor_liquido,status,data_solicitacao FROM saques WHERE usuario=? ORDER BY id DESC LIMIT 20',
+        (session['user'],)
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
 
+# ---- API: STATS PÚBLICAS ----
+
+@app.route('/api/stats')
+def api_stats():
+    conn = get_db()
+    total_usuarios = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin=0').fetchone()[0]
+    total_staking = conn.execute('SELECT COALESCE(SUM(saldo_em_staking),0) FROM users').fetchone()[0]
+    total_pago = conn.execute('SELECT COALESCE(SUM(total_ganho),0) FROM users').fetchone()[0]
+    conn.close()
+    return jsonify({
+        'total_usuarios': total_usuarios,
+        'total_em_staking': round(float(total_staking), 2),
+        'total_rendimentos_pagos': round(float(total_pago), 2),
+        'taxa_diaria_pct': round(float(get_config('rendimento_diario', '0.02')) * 100, 2),
+    })
 
 # ---- API: ADMIN ----
 
-@app.route('/api/admin/saques_pendentes')
-@require_login
-def admin_saques_pendentes():
-    if session['user'] != 'admin':
-        return jsonify({"error": "Acesso negado"}), 403
+@app.route('/api/admin/dashboard')
+@require_admin
+def admin_dashboard():
+    conn = get_db()
+    total_usuarios = conn.execute('SELECT COUNT(*) FROM users WHERE is_admin=0').fetchone()[0]
+    total_staking = conn.execute('SELECT COALESCE(SUM(saldo_em_staking),0) FROM users').fetchone()[0]
+    total_disponivel = conn.execute('SELECT COALESCE(SUM(saldo_disponivel),0) FROM users').fetchone()[0]
+    aportes_pendentes = conn.execute("SELECT COUNT(*) FROM aportes WHERE status='pendente'").fetchone()[0]
+    saques_pendentes = conn.execute("SELECT COUNT(*) FROM saques WHERE status='pendente'").fetchone()[0]
+    total_pago = conn.execute('SELECT COALESCE(SUM(total_ganho),0) FROM users').fetchone()[0]
+    conn.close()
+    return jsonify({
+        'total_usuarios': total_usuarios,
+        'total_em_staking': round(float(total_staking), 2),
+        'total_disponivel': round(float(total_disponivel), 2),
+        'aportes_pendentes': aportes_pendentes,
+        'saques_pendentes': saques_pendentes,
+        'total_rendimentos_pagos': round(float(total_pago), 2),
+        'taxa_diaria_pct': round(float(get_config('rendimento_diario', '0.02')) * 100, 2),
+    })
+
+@app.route('/api/admin/aportes_pendentes')
+@require_admin
+def admin_aportes_pendentes():
     conn = get_db()
     rows = conn.execute(
-        'SELECT id,usuario,valor,carteira,taxa,valor_liquido,data_solicitacao FROM saques WHERE status=? ORDER BY data_solicitacao DESC',
-        ('pendente',)
+        "SELECT id,usuario,valor,txid,metodo,data_aporte FROM aportes WHERE status='pendente' ORDER BY data_aporte DESC"
     ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
+@app.route('/api/admin/aprovar_aporte/<int:aporte_id>', methods=['POST'])
+@require_admin
+def admin_aprovar_aporte(aporte_id):
+    conn = get_db()
+    aporte = conn.execute("SELECT * FROM aportes WHERE id=? AND status='pendente'", (aporte_id,)).fetchone()
+    if not aporte:
+        conn.close()
+        return jsonify({'error': 'Aporte não encontrado ou já processado'}), 404
+
+    agora = datetime.now()
+    lock_dias = int(get_config('lock_dias', '7'))
+    lock_ate = agora + timedelta(days=lock_dias)
+
+    conn.execute("UPDATE aportes SET status='aprovado', data_aprovacao=?, aprovado_por=?, lock_ate=? WHERE id=?",
+                 (agora.isoformat(), session['user'], lock_ate.isoformat(), aporte_id))
+    conn.execute('UPDATE users SET saldo_em_staking=saldo_em_staking+?, total_depositado=total_depositado+? WHERE username=?',
+                 (aporte['valor'], aporte['valor'], aporte['usuario']))
+    conn.execute('INSERT INTO movimentacoes (usuario,tipo,valor,descricao,referencia) VALUES(?,?,?,?,?)',
+                 (aporte['usuario'], 'APORTE', aporte['valor'], 'Aporte aprovado e ativado em staking', aporte['txid']))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': f'Aporte de {aporte["valor"]} USDT aprovado para {aporte["usuario"]}!'})
+
+@app.route('/api/admin/rejeitar_aporte/<int:aporte_id>', methods=['POST'])
+@require_admin
+def admin_rejeitar_aporte(aporte_id):
+    conn = get_db()
+    aporte = conn.execute("SELECT * FROM aportes WHERE id=? AND status='pendente'", (aporte_id,)).fetchone()
+    if not aporte:
+        conn.close()
+        return jsonify({'error': 'Aporte não encontrado'}), 404
+    conn.execute("UPDATE aportes SET status='rejeitado' WHERE id=?", (aporte_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Aporte rejeitado.'})
+
+@app.route('/api/admin/saques_pendentes')
+@require_admin
+def admin_saques_pendentes():
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id,usuario,valor,carteira,taxa,valor_liquido,data_solicitacao FROM saques WHERE status='pendente' ORDER BY data_solicitacao DESC"
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
 
 @app.route('/api/admin/aprovar_saque/<int:saque_id>', methods=['POST'])
-@require_login
+@require_admin
 def admin_aprovar_saque(saque_id):
-    if session['user'] != 'admin':
-        return jsonify({"error": "Acesso negado"}), 403
+    data = request.json or {}
+    txid_saida = data.get('txid', '')
     conn = get_db()
-    saque = conn.execute('SELECT * FROM saques WHERE id=? AND status=?', (saque_id, 'pendente')).fetchone()
+    saque = conn.execute("SELECT * FROM saques WHERE id=? AND status='pendente'", (saque_id,)).fetchone()
     if not saque:
         conn.close()
-        return jsonify({"error": "Saque não encontrado ou já processado"}), 404
-    conn.execute('UPDATE saques SET status=? WHERE id=?', ('aprovado', saque_id))
+        return jsonify({'error': 'Saque não encontrado'}), 404
+    conn.execute("UPDATE saques SET status='aprovado', txid_saida=?, data_processamento=? WHERE id=?",
+                 (txid_saida, datetime.now().isoformat(), saque_id))
+    conn.execute('UPDATE users SET total_sacado=total_sacado+? WHERE username=?',
+                 (saque['valor_liquido'], saque['usuario']))
     conn.commit()
     conn.close()
-    return jsonify({"message": f"Saque de {saque['valor']} USDT aprovado para {saque['usuario']}"}), 200
-
+    return jsonify({'message': f'Saque de {saque["valor_liquido"]} USDT aprovado para {saque["usuario"]}!'})
 
 @app.route('/api/admin/rejeitar_saque/<int:saque_id>', methods=['POST'])
-@require_login
+@require_admin
 def admin_rejeitar_saque(saque_id):
-    if session['user'] != 'admin':
-        return jsonify({"error": "Acesso negado"}), 403
     conn = get_db()
-    saque = conn.execute('SELECT * FROM saques WHERE id=? AND status=?', (saque_id, 'pendente')).fetchone()
+    saque = conn.execute("SELECT * FROM saques WHERE id=? AND status='pendente'", (saque_id,)).fetchone()
     if not saque:
         conn.close()
-        return jsonify({"error": "Saque não encontrado ou já processado"}), 404
-    conn.execute('UPDATE users SET saldo=saldo+? WHERE username=?', (saque['valor'], saque['usuario']))
-    conn.execute('UPDATE saques SET status=? WHERE id=?', ('rejeitado', saque_id))
+        return jsonify({'error': 'Saque não encontrado'}), 404
+    conn.execute('UPDATE users SET saldo_disponivel=saldo_disponivel+? WHERE username=?',
+                 (saque['valor'], saque['usuario']))
+    conn.execute("UPDATE saques SET status='rejeitado' WHERE id=?", (saque_id,))
     conn.commit()
     conn.close()
-    return jsonify({"message": f"Saque rejeitado. {saque['valor']} USDT devolvidos para {saque['usuario']}"}), 200
+    return jsonify({'message': f'Saque rejeitado. {saque["valor"]} USDT devolvidos.'})
 
-
-@app.route('/api/admin/tarefas_concluidas')
-@require_login
-def admin_tarefas_concluidas():
-    if session['user'] != 'admin':
-        return jsonify({"error": "Acesso negado"}), 403
+@app.route('/api/admin/usuarios')
+@require_admin
+def admin_usuarios():
     conn = get_db()
     rows = conn.execute(
-        'SELECT id,tipo,quantidade,nicho,status,trabalhador,recompensa,conta,proof FROM tarefas WHERE status=? ORDER BY data_criacao DESC',
-        ('concluida',)
+        'SELECT username,email,saldo_disponivel,saldo_em_staking,total_ganho,total_depositado,total_sacado,data_cadastro,ativo FROM users WHERE is_admin=0 ORDER BY data_cadastro DESC'
     ).fetchall()
     conn.close()
     return jsonify([dict(r) for r in rows])
 
+@app.route('/api/admin/config', methods=['GET', 'POST'])
+@require_admin
+def admin_config():
+    if request.method == 'POST':
+        data = request.json or {}
+        campos_permitidos = ['rendimento_diario', 'aporte_minimo', 'saque_minimo', 'taxa_saque', 'lock_dias', 'carteira_deposito']
+        for campo in campos_permitidos:
+            if campo in data:
+                set_config(campo, data[campo])
+        return jsonify({'message': 'Configurações salvas!'})
 
-@app.route('/api/admin/aprovar_tarefa/<int:tarefa_id>', methods=['POST'])
-@require_login
-def admin_aprovar_tarefa(tarefa_id):
-    if session['user'] != 'admin':
-        return jsonify({"error": "Acesso negado"}), 403
+    chaves = ['rendimento_diario', 'aporte_minimo', 'saque_minimo', 'taxa_saque', 'lock_dias', 'carteira_deposito', 'plataforma_nome']
+    result = {}
+    for c in chaves:
+        result[c] = get_config(c)
+    return jsonify(result)
+
+@app.route('/api/admin/creditar_manual', methods=['POST'])
+@require_admin
+def admin_creditar_manual():
+    data = request.json or {}
+    usuario = data.get('usuario', '').strip()
+    valor = float(data.get('valor', 0))
+    tipo = data.get('tipo', 'disponivel')  # 'disponivel' ou 'staking'
+
+    if valor <= 0:
+        return jsonify({'error': 'Valor inválido'}), 400
+
     conn = get_db()
-    tarefa = conn.execute('SELECT * FROM tarefas WHERE id=? AND status=?', (tarefa_id, 'concluida')).fetchone()
-    if not tarefa:
+    user = conn.execute('SELECT username FROM users WHERE username=?', (usuario,)).fetchone()
+    if not user:
         conn.close()
-        return jsonify({"error": "Tarefa não encontrada ou já processada"}), 404
-    conn.execute('UPDATE tarefas SET status=? WHERE id=?', ('aprovada', tarefa_id))
+        return jsonify({'error': 'Usuário não encontrado'}), 404
+
+    if tipo == 'staking':
+        conn.execute('UPDATE users SET saldo_em_staking=saldo_em_staking+? WHERE username=?', (valor, usuario))
+    else:
+        conn.execute('UPDATE users SET saldo_disponivel=saldo_disponivel+? WHERE username=?', (valor, usuario))
+
+    conn.execute('INSERT INTO movimentacoes (usuario,tipo,valor,descricao) VALUES(?,?,?,?)',
+                 (usuario, 'CREDITO_MANUAL', valor, f'Crédito manual pelo admin — {tipo}'))
     conn.commit()
     conn.close()
-    return jsonify({"message": f"Tarefa {tarefa_id} aprovada. Pagamento já foi realizado."}), 200
-
-
-@app.route('/api/admin/rejeitar_tarefa/<int:tarefa_id>', methods=['POST'])
-@require_login
-def admin_rejeitar_tarefa(tarefa_id):
-    if session['user'] != 'admin':
-        return jsonify({"error": "Acesso negado"}), 403
-    conn = get_db()
-    tarefa = conn.execute('SELECT * FROM tarefas WHERE id=? AND status=?', (tarefa_id, 'concluida')).fetchone()
-    if not tarefa:
-        conn.close()
-        return jsonify({"error": "Tarefa não encontrada ou já processada"}), 404
-    conn.execute('UPDATE tarefas SET status=?, trabalhador=NULL, proof=NULL WHERE id=?', ('pendente', tarefa_id))
-    ganho = round(tarefa['recompensa'] * tarefa['quantidade'], 6)
-    conn.execute('UPDATE users SET saldo=saldo-? WHERE username=?', (ganho, tarefa['trabalhador']))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": f"Tarefa rejeitada. {ganho} USDT devolvidos do trabalhador {tarefa['trabalhador']}"}), 200
-
-
-@app.route('/api/admin/usuarios')
-@require_login
-def admin_usuarios():
-    if session['user'] != 'admin':
-        return jsonify({"error": "Acesso negado"}), 403
-    conn = get_db()
-    rows = conn.execute('SELECT username,saldo,is_worker,subscribed FROM users ORDER BY username').fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
+    return jsonify({'message': f'{valor} USDT creditado em {tipo} para {usuario}!'})
 
 # ---- EFI PIX HELPERS ----
 
@@ -871,242 +791,81 @@ def efi_base_url():
 def efi_certificate_path():
     return os.environ.get('EFI_CERTIFICATE_PATH', '').strip()
 
-def efi_webhook_proxy_note():
-    return 'O webhook Pix da Efí usa mTLS. Em Railway puro, o ideal é usar proxy mTLS/Nginx na frente antes de apontar o webhook automático.'
-
 def efi_get_cert():
-    """
-    Retorna o cert para o requests.
-    O arquivo PEM da Efí contém tanto o certificado quanto a chave privada.
-    Passamos como tupla (cert, key) apontando para o mesmo arquivo.
-    """
     cert_path = efi_certificate_path()
-    if not cert_path:
-        raise RuntimeError('EFI_CERTIFICATE_PATH não configurado.')
-    if not os.path.exists(cert_path):
-        raise RuntimeError(
-            f'Certificado PEM da Efí não encontrado em: {cert_path}. '
-            'Verifique se o arquivo efi_cert.pem foi enviado ao repositório e se EFI_CERTIFICATE_PATH está correto.'
-        )
-    # O PEM da Efí contém cert + key no mesmo arquivo
+    if not cert_path or not os.path.exists(cert_path):
+        raise RuntimeError(f'Certificado PEM não encontrado em: {cert_path}')
     return (cert_path, cert_path)
 
 def efi_access_token():
     cert = efi_get_cert()
-
     client_id = os.environ.get('EFI_CLIENT_ID', '').strip()
     client_secret = os.environ.get('EFI_CLIENT_SECRET', '').strip()
-
-    print("EFI sandbox:", efi_is_sandbox())
-    print("EFI cert path:", efi_certificate_path())
-
-    print("EFI client id exists:", bool(client_id))
-    print("EFI client id len:", len(client_id))
-    print("EFI client id prefix:", client_id[:6] if client_id else "")
-
-    print("EFI client secret exists:", bool(client_secret))
-    print("EFI client secret len:", len(client_secret))
-    print("EFI client secret prefix:", client_secret[:6] if client_secret else "")
-
-
     if client_id.startswith('EFI_CLIENT_ID='):
         client_id = client_id.split('=', 1)[1].strip()
-    if client_secret.startswith('EFI_CLIENT_SECRET='):
-        client_secret = client_secret.split('=', 1)[1].strip()
-
-    if not client_id or not client_secret:
-        raise RuntimeError('EFI_CLIENT_ID e EFI_CLIENT_SECRET são obrigatórios.')
-
-    credentials = f'{client_id}:{client_secret}'
-    auth = base64.b64encode(credentials.encode()).decode()
-
-    try:
-        resp = requests.post(
-            f'{efi_base_url()}/oauth/token',
-            headers={
-                'Authorization': f'Basic {auth}',
-                'Content-Type': 'application/json',
-            },
-            json={'grant_type': 'client_credentials'},
-            cert=cert,
-            verify=False,
-            timeout=30,
-        )
-    except requests.exceptions.SSLError as e:
-        raise RuntimeError(f'Erro SSL ao conectar na Efí: {e}. Verifique o certificado PEM.')
-    except requests.exceptions.ConnectionError as e:
-        raise RuntimeError(f'Erro de conexão com a Efí: {e}. Verifique a URL e a rede.')
-
+    if client_secret.startswith('Client_Secret_'):
+        client_secret = client_secret.replace('Client_Secret_', '', 1).strip()
+    auth = base64.b64encode(f'{client_id}:{client_secret}'.encode()).decode()
+    resp = requests.post(
+        f'{efi_base_url()}/oauth/token',
+        headers={'Authorization': f'Basic {auth}', 'Content-Type': 'application/json'},
+        json={'grant_type': 'client_credentials'},
+        cert=cert, verify=False, timeout=30,
+    )
     if not resp.ok:
-        raise RuntimeError(
-            f'Falha na autenticação Efí: {resp.status_code} {resp.text}. '
-            'Verifique se EFI_CLIENT_ID e EFI_CLIENT_SECRET estão com os valores puros '
-            '(sem prefixos), e se as credenciais são do ambiente correto (Sandbox x Produção).'
-        )
-
-    token = resp.json().get('access_token')
-    if not token:
-        raise RuntimeError(f'Efí não retornou access_token. Resposta: {resp.text}')
-    return token
+        raise RuntimeError(f'Falha na autenticação Efí: {resp.status_code} {resp.text}')
+    return resp.json().get('access_token')
 
 def efi_request(method, path, *, json_body=None):
-    """
-    Faz uma requisição autenticada à API Efí.
-    CORREÇÕES aplicadas:
-    - cert passado como tupla (cert_path, cert_path)
-    - verify=False em sandbox
-    """
     token = efi_access_token()
     cert = efi_get_cert()
-
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json',
-    }
-
-    try:
-        resp = requests.request(
-            method,
-            f'{efi_base_url()}{path}',
-            headers=headers,
-            json=json_body,
-            cert=cert,
-            verify=False,  # Necessário em sandbox
-            timeout=30,
-        )
-    except requests.exceptions.SSLError as e:
-        raise RuntimeError(f'Erro SSL na requisição Efí {method} {path}: {e}')
-    except requests.exceptions.ConnectionError as e:
-        raise RuntimeError(f'Erro de conexão na requisição Efí {method} {path}: {e}')
-
+    resp = requests.request(
+        method, f'{efi_base_url()}{path}',
+        headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+        json=json_body, cert=cert, verify=False, timeout=30,
+    )
     if not resp.ok:
         raise RuntimeError(f'Efí {method} {path} -> {resp.status_code}: {resp.text}')
-
-    if resp.text.strip():
-        return resp.json()
-    return {}
-
-def creditar_saldo_pix(conn, cobranca_row, e2eid=None, origem='verificacao_manual'):
-    if cobranca_row['creditado']:
-        return False
-    valor = float(cobranca_row['valor'])
-    conn.execute('UPDATE users SET saldo=saldo+? WHERE username=?', (valor, cobranca_row['usuario']))
-    conn.execute(
-        "UPDATE pix_cobrancas SET creditado=1, status='CONCLUIDA', e2eid=COALESCE(?, e2eid), webhook_recebido=CASE WHEN ?='webhook' THEN 1 ELSE webhook_recebido END WHERE id=?",
-        (e2eid, origem, cobranca_row['id'])
-    )
-    conn.execute(
-        'INSERT INTO movimentacoes (usuario,tipo,valor,descricao,referencia) VALUES(?,?,?,?,?)',
-        (cobranca_row['usuario'], 'CREDITO_PIX_EFI', valor, 'Crédito automático via Pix Efí', cobranca_row['txid'])
-    )
-    return True
-
+    return resp.json() if resp.text.strip() else {}
 
 # ---- API: EFI PIX ----
-
-@app.route('/api/efi/config')
-@require_login
-def api_efi_config():
-    return jsonify({
-        'enabled': efi_is_enabled(),
-        'sandbox': efi_is_sandbox(),
-        'pix_key_configured': bool(os.environ.get('EFI_PIX_KEY')),
-        'webhook_url': os.environ.get('EFI_WEBHOOK_URL', ''),
-        'note': efi_webhook_proxy_note()
-    })
 
 @app.route('/api/efi/pix/criar', methods=['POST'])
 @require_login
 def api_efi_pix_criar():
     if not efi_is_enabled():
-        return jsonify({'error': 'Efí não configurada no servidor. Defina EFI_CLIENT_ID, EFI_CLIENT_SECRET, EFI_CERTIFICATE_PATH e EFI_PIX_KEY.'}), 503
+        return jsonify({'error': 'PIX não configurado.'}), 503
     data = request.json or {}
     valor = float(data.get('valor', 0))
-    if valor <= 0:
-        return jsonify({'error': 'Informe um valor válido para o depósito.'}), 400
-
-    body = {
-        'calendario': {'expiracao': EFI_PIX_EXPIRACAO},
-        'valor': {'original': _money2(valor)},
-        'chave': os.environ.get('EFI_PIX_KEY', '').strip(),
-        'solicitacaoPagador': f'Depósito NichoPost do usuário {session["user"]}'
-    }
+    aporte_min = float(get_config('aporte_minimo', '50'))
+    if valor < aporte_min:
+        return jsonify({'error': f'Valor mínimo: {aporte_min}'}), 400
     try:
-        cob = efi_request('POST', '/v2/cob', json_body=body)
-        loc_id = ((cob.get('loc') or {}).get('id')) or cob.get('loc', {}).get('id')
+        cob = efi_request('POST', '/v2/cob', json_body={
+            'calendario': {'expiracao': EFI_PIX_EXPIRACAO},
+            'valor': {'original': _money2(valor)},
+            'chave': os.environ.get('EFI_PIX_KEY', '').strip(),
+            'solicitacaoPagador': f'Aporte CryptoYield — {session["user"]}'
+        })
+        loc_id = (cob.get('loc') or {}).get('id')
         txid = cob.get('txid')
         if not txid or not loc_id:
-            return jsonify({'error': 'A Efí não retornou txid/loc esperados.', 'raw': cob}), 502
+            return jsonify({'error': 'Resposta inválida da Efí', 'raw': cob}), 502
         qr = efi_request('GET', f'/v2/loc/{loc_id}/qrcode')
-        copia = qr.get('qrcode') or cob.get('pixCopiaECola')
-        imagem = qr.get('imagemQrcode')
-        link = qr.get('linkVisualizacao', '')
         conn = get_db()
         conn.execute(
-            '''INSERT INTO pix_cobrancas (usuario,valor,txid,loc_id,status,pix_copia_e_cola,imagem_qrcode,link_visualizacao)
-               VALUES(?,?,?,?,?,?,?,?)''',
-            (session['user'], valor, txid, loc_id, cob.get('status', 'ATIVA'), copia, imagem, link)
+            'INSERT INTO pix_cobrancas (usuario,valor,txid,loc_id,status,pix_copia_e_cola,imagem_qrcode,link_visualizacao) VALUES(?,?,?,?,?,?,?,?)',
+            (session['user'], valor, txid, loc_id, cob.get('status', 'ATIVA'),
+             qr.get('qrcode'), qr.get('imagemQrcode'), qr.get('linkVisualizacao', ''))
         )
         conn.commit()
-        row_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
         conn.close()
         return jsonify({
-            'message': 'PIX Efí gerado com sucesso.',
-            'id': row_id,
-            'txid': txid,
-            'status': cob.get('status', 'ATIVA'),
-            'valor': valor,
-            'qrcode': copia,
-            'imagemQrcode': imagem,
-            'linkVisualizacao': link,
-            'loc_id': loc_id
+            'txid': txid, 'qrcode': qr.get('qrcode'),
+            'imagemQrcode': qr.get('imagemQrcode'),
+            'valor': valor, 'status': 'ATIVA'
         }), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/efi/pix/minhas')
-@require_login
-def api_efi_pix_minhas():
-    conn = get_db()
-    rows = conn.execute(
-        'SELECT id,usuario,valor,txid,loc_id,status,pix_copia_e_cola,imagem_qrcode,link_visualizacao,e2eid,creditado,data_criacao FROM pix_cobrancas WHERE usuario=? ORDER BY id DESC LIMIT 20',
-        (session['user'],)
-    ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
-@app.route('/api/efi/pix/verificar/<int:cobranca_id>', methods=['POST'])
-@require_login
-def api_efi_pix_verificar(cobranca_id):
-    if not efi_is_enabled():
-        return jsonify({'error': 'Efí não configurada no servidor.'}), 503
-    conn = get_db()
-    row = conn.execute('SELECT * FROM pix_cobrancas WHERE id=? AND usuario=?', (cobranca_id, session['user'])).fetchone()
-    if not row:
-        conn.close()
-        return jsonify({'error': 'Cobrança Pix não encontrada.'}), 404
-    try:
-        cob = efi_request('GET', f'/v2/cob/{row["txid"]}')
-        status = cob.get('status', row['status'])
-        conn.execute('UPDATE pix_cobrancas SET status=? WHERE id=?', (status, cobranca_id))
-        creditou = False
-        e2eid = None
-        if status == 'CONCLUIDA':
-            pix_list = cob.get('pix') or []
-            if pix_list:
-                e2eid = pix_list[0].get('endToEndId')
-            creditou = creditar_saldo_pix(conn, row, e2eid=e2eid, origem='verificacao_manual')
-        conn.commit()
-        saldo = conn.execute('SELECT saldo FROM users WHERE username=?', (session['user'],)).fetchone()['saldo']
-        conn.close()
-        return jsonify({
-            'status': status,
-            'creditado_agora': creditou,
-            'saldo_atual': round(float(saldo), 4),
-            'message': 'Pagamento confirmado e saldo creditado.' if creditou else ('Pagamento já estava creditado.' if row['creditado'] else 'Cobrança ainda não foi concluída.')
-        })
-    except Exception as e:
-        conn.close()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/efi/webhook/pix', methods=['POST'])
@@ -1114,44 +873,21 @@ def api_efi_webhook_pix():
     payload = request.get_json(silent=True) or {}
     pix_list = payload.get('pix') or []
     conn = get_db()
-    creditados = 0
     for pix in pix_list:
         txid = pix.get('txid')
         if not txid:
             continue
-        row = conn.execute('SELECT * FROM pix_cobrancas WHERE txid=?', (txid,)).fetchone()
+        row = conn.execute('SELECT * FROM pix_cobrancas WHERE txid=? AND creditado=0', (txid,)).fetchone()
         if not row:
             continue
-        conn.execute("UPDATE pix_cobrancas SET status='CONCLUIDA', e2eid=?, webhook_recebido=1 WHERE id=?", (pix.get('endToEndId'), row['id']))
-        if creditar_saldo_pix(conn, row, e2eid=pix.get('endToEndId'), origem='webhook'):
-            creditados += 1
+        conn.execute("UPDATE pix_cobrancas SET status='CONCLUIDA', e2eid=?, webhook_recebido=1, creditado=1 WHERE id=?",
+                     (pix.get('endToEndId'), row['id']))
+        # Criar aporte automaticamente
+        conn.execute('INSERT INTO aportes (usuario,valor,txid,metodo,status) VALUES(?,?,?,?,?)',
+                     (row['usuario'], row['valor'], txid, 'pix', 'pendente'))
     conn.commit()
     conn.close()
-    return jsonify({'ok': True, 'creditados': creditados})
-
-@app.route('/api/movimentacoes')
-@require_login
-def api_movimentacoes():
-    conn = get_db()
-    rows = conn.execute(
-        'SELECT tipo,valor,descricao,referencia,data_evento FROM movimentacoes WHERE usuario=? ORDER BY id DESC LIMIT 50',
-        (session['user'],)
-    ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
-@app.route('/api/admin/efi/pix')
-@require_login
-def admin_efi_pix():
-    if session['user'] != 'admin':
-        return jsonify({'error': 'Acesso negado'}), 403
-    conn = get_db()
-    rows = conn.execute(
-        'SELECT id,usuario,valor,txid,status,creditado,e2eid,data_criacao FROM pix_cobrancas ORDER BY id DESC LIMIT 100'
-    ).fetchall()
-    conn.close()
-    return jsonify([dict(r) for r in rows])
-
+    return jsonify({'ok': True})
 
 # ---- RUN ----
 
