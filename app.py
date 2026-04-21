@@ -903,17 +903,16 @@ def efi_access_token():
 
     client_id = os.environ.get('EFI_CLIENT_ID', '').strip()
     client_secret = os.environ.get('EFI_CLIENT_SECRET', '').strip()
-print("EFI sandbox:", efi_is_sandbox())
-print("EFI cert path:", efi_certificate_path())
-print("EFI client id exists:", bool(client_id))
-print("EFI client secret exists:", bool(client_secret))
-print("EFI client id len:", len(client_id))
-print("EFI client secret len:", len(client_secret))
-print("EFI client id prefix:", client_id[:6] if client_id else "")
-print("EFI client secret prefix:", client_secret[:6] if client_secret else "") 
 
-    # Limpar apenas prefixos acidentais de colagem nas env vars.
-    # O ideal é que as variáveis no Railway contenham SOMENTE o valor puro.
+    print("EFI sandbox:", efi_is_sandbox())
+    print("EFI cert path:", efi_certificate_path())
+    print("EFI client id exists:", bool(client_id))
+    print("EFI client secret exists:", bool(client_secret))
+    print("EFI client id len:", len(client_id))
+    print("EFI client secret len:", len(client_secret))
+    print("EFI client id prefix:", client_id[:6] if client_id else "")
+    print("EFI client secret prefix:", client_secret[:6] if client_secret else "")
+
     if client_id.startswith('EFI_CLIENT_ID='):
         client_id = client_id.split('=', 1)[1].strip()
     if client_secret.startswith('EFI_CLIENT_SECRET='):
@@ -934,7 +933,7 @@ print("EFI client secret prefix:", client_secret[:6] if client_secret else "")
             },
             json={'grant_type': 'client_credentials'},
             cert=cert,
-            verify=False,  # Necessário em sandbox — certificado auto-assinado da Efí
+            verify=False,
             timeout=30,
         )
     except requests.exceptions.SSLError as e:
