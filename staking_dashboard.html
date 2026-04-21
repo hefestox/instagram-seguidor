@@ -1,0 +1,1426 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CryptoYield — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Montserrat:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #d4af37;
+  --gold-light: #e8c84a;
+  --gold-dim: #7a6a3a;
+  --gold-pale: rgba(212,175,55,0.12);
+  --gold-glow: rgba(212,175,55,0.08);
+  --bg: #060606;
+  --bg2: #0a0a08;
+  --bg3: #0f0f0a;
+  --surface: #111108;
+  --surface2: #161610;
+  --text: #e8d5a3;
+  --text-dim: #8a7a55;
+  --text-faint: #4a4030;
+  --border: rgba(212,175,55,0.12);
+  --border-bright: rgba(212,175,55,0.25);
+  --green: #3ddc84;
+  --red: #e05252;
+  --sidebar-w: 240px;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box }
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px }
+::-webkit-scrollbar-track { background: var(--bg) }
+::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px }
+
+/* ── LAYOUT ── */
+.layout { display: flex; min-height: 100vh }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; height: 100vh;
+  z-index: 100;
+  transition: transform .3s;
+}
+
+.sidebar-logo {
+  padding: 32px 24px 28px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-mark {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 300;
+  color: var(--gold);
+  letter-spacing: 4px;
+  display: block;
+}
+.logo-sub {
+  font-size: 8px; letter-spacing: 4px;
+  color: var(--gold-dim); text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.nav { flex: 1; padding: 20px 0; overflow-y: auto }
+
+.nav-section {
+  font-size: 8px; letter-spacing: 3px; color: var(--text-faint);
+  text-transform: uppercase; padding: 16px 24px 8px;
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 24px; cursor: pointer;
+  font-size: 11px; font-weight: 500; letter-spacing: 1.5px;
+  color: var(--text-dim); text-transform: uppercase;
+  transition: all .2s; border-left: 2px solid transparent;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: var(--gold-glow) }
+.nav-item.active {
+  color: var(--gold); background: var(--gold-pale);
+  border-left-color: var(--gold);
+}
+.nav-item svg { flex-shrink: 0; opacity: .7 }
+.nav-item.active svg { opacity: 1 }
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--gold);
+  color: #080808;
+  font-size: 9px; font-weight: 700;
+  padding: 2px 6px; border-radius: 10px;
+}
+
+.sidebar-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+}
+.avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--gold-pale);
+  border: 1px solid var(--border-bright);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: var(--gold);
+}
+.user-info { flex: 1; overflow: hidden }
+.user-name { font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.user-role { font-size: 9px; color: var(--gold-dim); letter-spacing: 1px }
+.logout-btn { color: var(--text-faint); transition: color .2s }
+.logout-btn:hover { color: var(--red) }
+
+/* ── MAIN ── */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1; padding: 0;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(6,6,6,0.8);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 50;
+}
+.page-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 300; color: var(--text);
+  letter-spacing: 2px;
+}
+.topbar-right { display: flex; align-items: center; gap: 16px }
+
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; letter-spacing: 2px; color: var(--green);
+  text-transform: uppercase;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(61,220,132,.4) }
+  50% { opacity: .7; box-shadow: 0 0 0 4px rgba(61,220,132,0) }
+}
+
+/* ── CONTENT ── */
+.content { padding: 32px; display: none }
+.content.active { display: block }
+
+/* ── CARDS ── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px; margin-bottom: 28px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 24px;
+  position: relative; overflow: hidden;
+  transition: border-color .2s;
+}
+.card:hover { border-color: var(--border-bright) }
+.card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0; transition: opacity .3s;
+}
+.card:hover::after { opacity: .5 }
+
+.card.highlight {
+  background: linear-gradient(135deg, var(--surface) 0%, rgba(212,175,55,0.05) 100%);
+  border-color: rgba(212,175,55,0.2);
+}
+
+.card-label {
+  font-size: 9px; letter-spacing: 3px; color: var(--text-faint);
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.card-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px; font-weight: 300;
+  color: var(--text); line-height: 1;
+}
+.card-value .unit { font-size: 12px; color: var(--gold-dim); margin-left: 4px }
+.card-sub {
+  font-size: 10px; color: var(--text-dim);
+  margin-top: 8px; display: flex; align-items: center; gap: 4px;
+}
+.card-sub .up { color: var(--green) }
+.card-sub .down { color: var(--red) }
+
+.card-icon {
+  position: absolute; right: 20px; top: 20px;
+  width: 36px; height: 36px;
+  background: var(--gold-pale);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gold);
+}
+
+/* ── RENDIMENTO CARD ── */
+.rendimento-card {
+  background: linear-gradient(135deg, #0a0a00 0%, #111100 50%, #0a0a00 100%);
+  border: 1px solid rgba(212,175,55,0.3);
+  border-radius: 3px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
+  position: relative; overflow: hidden;
+}
+.rendimento-card::before {
+  content: '';
+  position: absolute; top: -50%; left: -10%;
+  width: 400px; height: 300px;
+  background: radial-gradient(ellipse, rgba(212,175,55,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.rendimento-info { flex: 1 }
+.rendimento-label {
+  font-size: 9px; letter-spacing: 4px; color: var(--gold-dim);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.rendimento-valor {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 42px; font-weight: 300;
+  color: var(--gold);
+  line-height: 1;
+}
+.rendimento-valor .unit { font-size: 16px; color: var(--gold-dim) }
+.rendimento-desc { font-size: 11px; color: var(--text-dim); margin-top: 8px }
+
+.btn-coletar {
+  padding: 16px 36px;
+  background: linear-gradient(135deg, #c9a227, #d4af37);
+  color: #060606;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; border: none; border-radius: 2px;
+  cursor: pointer; transition: all .2s;
+  white-space: nowrap;
+}
+.btn-coletar:hover { opacity: .85; transform: translateY(-1px) }
+.btn-coletar:active { transform: translateY(0) }
+.btn-coletar:disabled { opacity: .4; cursor: not-allowed; transform: none }
+
+/* ── TAXA DIÁRIA ── */
+.taxa-display {
+  display: flex; align-items: baseline; gap: 4px;
+  margin-bottom: 4px;
+}
+.taxa-pct {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 52px; font-weight: 300; color: var(--gold);
+  line-height: 1;
+}
+.taxa-pct-symbol { font-size: 24px; color: var(--gold-dim) }
+.taxa-label { font-size: 9px; letter-spacing: 3px; color: var(--text-faint); text-transform: uppercase }
+
+/* ── PROJEÇÃO ── */
+.projecao-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--border); border-radius: 2px; overflow: hidden;
+  margin-top: 16px;
+}
+.projecao-item {
+  background: var(--surface); padding: 14px 16px;
+  text-align: center;
+}
+.projecao-period { font-size: 9px; letter-spacing: 2px; color: var(--text-faint); text-transform: uppercase; margin-bottom: 4px }
+.projecao-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; color: var(--green);
+}
+
+/* ── FORMS ── */
+.form-section { margin-bottom: 28px }
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; font-weight: 300; color: var(--text);
+  letter-spacing: 2px; margin-bottom: 20px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.section-title span {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 9px; letter-spacing: 3px; color: var(--gold-dim);
+  text-transform: uppercase; font-weight: 400;
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px }
+.field { margin-bottom: 16px }
+.field label {
+  display: block; font-size: 9px; letter-spacing: 2px;
+  color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;
+}
+.field input, .field select, .field textarea {
+  width: 100%; padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 2px; color: var(--text);
+  font-family: 'Montserrat', sans-serif; font-size: 13px;
+  outline: none; transition: border-color .2s;
+}
+.field input:focus, .field select:focus { border-color: rgba(212,175,55,0.35) }
+.field select { cursor: pointer }
+.field .hint { font-size: 10px; color: var(--text-faint); margin-top: 6px }
+
+.btn {
+  padding: 13px 28px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 10px; font-weight: 600; letter-spacing: 3px;
+  text-transform: uppercase; border: none; border-radius: 2px;
+  cursor: pointer; transition: all .2s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #c9a227, #d4af37);
+  color: #060606;
+}
+.btn-primary:hover { opacity: .85 }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-dim);
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold) }
+.btn-danger { background: rgba(224,82,82,0.15); border: 1px solid rgba(224,82,82,0.3); color: var(--red) }
+.btn-danger:hover { background: rgba(224,82,82,0.25) }
+.btn-success { background: rgba(61,220,132,0.15); border: 1px solid rgba(61,220,132,0.3); color: var(--green) }
+.btn-success:hover { background: rgba(61,220,132,0.25) }
+.btn-sm { padding: 7px 14px; font-size: 9px }
+
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto }
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px;
+}
+th {
+  text-align: left; padding: 10px 14px;
+  font-size: 8px; letter-spacing: 2px; color: var(--text-faint);
+  text-transform: uppercase; border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+td {
+  padding: 13px 14px; border-bottom: 1px solid rgba(212,175,55,0.05);
+  color: var(--text-dim);
+}
+tr:hover td { background: var(--gold-glow) }
+.mono { font-family: 'JetBrains Mono', monospace; font-size: 11px }
+
+/* ── STATUS BADGES ── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 2px;
+  font-size: 9px; font-weight: 600; letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.badge-pending { background: rgba(212,175,55,0.1); color: var(--gold); border: 1px solid rgba(212,175,55,0.2) }
+.badge-approved { background: rgba(61,220,132,0.1); color: var(--green); border: 1px solid rgba(61,220,132,0.2) }
+.badge-rejected { background: rgba(224,82,82,0.1); color: var(--red); border: 1px solid rgba(224,82,82,0.2) }
+.badge-active { background: rgba(61,220,132,0.1); color: var(--green); border: 1px solid rgba(61,220,132,0.2) }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 32px; right: 32px;
+  padding: 14px 20px; border-radius: 3px;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.5px;
+  z-index: 9999; transform: translateY(20px);
+  opacity: 0; transition: all .3s; pointer-events: none;
+  max-width: 320px;
+}
+#toast.show { transform: translateY(0); opacity: 1 }
+#toast.success { background: rgba(61,220,132,0.15); border: 1px solid rgba(61,220,132,0.3); color: var(--green) }
+#toast.error { background: rgba(224,82,82,0.15); border: 1px solid rgba(224,82,82,0.3); color: var(--red) }
+#toast.info { background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); color: var(--gold) }
+
+/* ── CARTEIRA BOX ── */
+.wallet-box {
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  border-radius: 2px; padding: 16px 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 16px;
+}
+.wallet-addr {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--gold);
+  word-break: break-all;
+}
+.copy-btn {
+  background: var(--gold-pale); border: 1px solid var(--border-bright);
+  color: var(--gold); padding: 6px 12px; border-radius: 2px;
+  font-size: 9px; letter-spacing: 1px; cursor: pointer;
+  white-space: nowrap; transition: all .2s;
+}
+.copy-btn:hover { background: rgba(212,175,55,0.2) }
+
+/* ── INFO BOX ── */
+.info-box {
+  background: rgba(212,175,55,0.04);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--gold);
+  border-radius: 2px; padding: 14px 16px;
+  font-size: 11px; color: var(--text-dim);
+  line-height: 1.6; margin-bottom: 20px;
+}
+.info-box strong { color: var(--gold) }
+
+/* ── ADMIN GRID ── */
+.admin-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.admin-stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 3px; padding: 18px 20px;
+}
+.admin-stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px; font-weight: 300; color: var(--text);
+}
+.admin-stat-label { font-size: 9px; letter-spacing: 2px; color: var(--text-faint); text-transform: uppercase; margin-top: 4px }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 24px 0 }
+
+/* ── MOBILE ── */
+.menu-toggle {
+  display: none; background: none; border: none;
+  color: var(--text); cursor: pointer; padding: 4px;
+}
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.7); z-index: 99;
+}
+
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%) }
+  .sidebar.open { transform: translateX(0) }
+  .sidebar-overlay.show { display: block }
+  .main { margin-left: 0 }
+  .menu-toggle { display: block }
+  .content { padding: 20px 16px }
+  .cards-grid { grid-template-columns: 1fr 1fr }
+  .form-row { grid-template-columns: 1fr }
+  .rendimento-valor { font-size: 30px }
+  .taxa-pct { font-size: 36px }
+}
+
+/* ── LOADING ── */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 2px; height: 24px;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── COUNTER ANIMATION ── */
+.count-up { transition: all .5s }
+
+/* ── GLOW EFFECT ── */
+.glow { text-shadow: 0 0 20px rgba(212,175,55,0.4) }
+</style>
+</head>
+<body>
+
+<div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-mark">CRYPTOYIELD</span>
+    <span class="logo-sub">Digital Asset Staking</span>
+  </div>
+
+  <div class="nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('staking')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Staking
+    </div>
+    <div class="nav-item" onclick="showPage('depositar')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+      Depositar
+    </div>
+    <div class="nav-item" onclick="showPage('sacar')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Sacar
+    </div>
+    <div class="nav-section">Conta</div>
+    <div class="nav-item" onclick="showPage('historico')">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Histórico
+    </div>
+    <div class="nav-item" id="admin-nav" onclick="showPage('admin')" style="display:none">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Admin
+      <span class="nav-badge" id="admin-badge" style="display:none">0</span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer" onclick="confirmLogout()">
+    <div class="avatar" id="user-avatar">?</div>
+    <div class="user-info">
+      <div class="user-name" id="user-name-display">Carregando...</div>
+      <div class="user-role">Investidor</div>
+    </div>
+    <div class="logout-btn">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:16px">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="page-title" id="page-title">Dashboard</div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-badge"><div class="live-dot"></div>Live</div>
+      <div style="font-size:11px;color:var(--text-dim)" id="clock">00:00:00</div>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="content active" id="page-dashboard">
+    <div class="cards-grid">
+      <div class="card highlight">
+        <div class="card-label">Saldo em Staking</div>
+        <div class="card-value"><span id="d-staking">0.000000</span><span class="unit">USDT</span></div>
+        <div class="card-sub"><span class="up">▲</span> Gerando rendimentos</div>
+        <div class="card-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Disponível para Saque</div>
+        <div class="card-value"><span id="d-disponivel">0.000000</span><span class="unit">USDT</span></div>
+        <div class="card-sub">Rendimentos coletados</div>
+        <div class="card-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total Ganho</div>
+        <div class="card-value"><span id="d-ganho">0.000000</span><span class="unit">USDT</span></div>
+        <div class="card-sub">Desde o início</div>
+        <div class="card-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Taxa Diária</div>
+        <div class="taxa-display">
+          <span class="taxa-pct glow" id="d-taxa">2</span>
+          <span class="taxa-pct-symbol">%</span>
+        </div>
+        <div class="taxa-label">rendimento / dia</div>
+      </div>
+    </div>
+
+    <!-- RENDIMENTO PENDENTE -->
+    <div class="rendimento-card">
+      <div class="rendimento-info">
+        <div class="rendimento-label">Rendimento disponível para coleta</div>
+        <div class="rendimento-valor"><span id="d-pendente">0.000000</span><span class="unit"> USDT</span></div>
+        <div class="rendimento-desc" id="d-pendente-desc">Acumula continuamente enquanto seu saldo estiver em staking</div>
+      </div>
+      <button class="btn-coletar" id="btn-coletar" onclick="coletarRendimento()">
+        ⚡ Coletar agora
+      </button>
+    </div>
+
+    <!-- PROJEÇÃO -->
+    <div class="card" style="margin-bottom:28px">
+      <div class="card-label">Projeção de rendimento</div>
+      <div class="projecao-grid" id="projecao-grid">
+        <div class="projecao-item"><div class="projecao-period">7 dias</div><div class="projecao-val" id="proj-7">—</div></div>
+        <div class="projecao-item"><div class="projecao-period">30 dias</div><div class="projecao-val" id="proj-30">—</div></div>
+        <div class="projecao-item"><div class="projecao-period">365 dias</div><div class="projecao-val" id="proj-365">—</div></div>
+      </div>
+    </div>
+
+    <!-- ÚLTIMAS MOVIMENTAÇÕES -->
+    <div class="card">
+      <div class="card-label" style="margin-bottom:16px">Últimas movimentações</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Valor</th><th>Descrição</th><th>Data</th></tr></thead>
+          <tbody id="hist-mini"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STAKING ── -->
+  <div class="content" id="page-staking">
+    <div class="cards-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:24px">
+      <div class="card">
+        <div class="card-label">Em Staking</div>
+        <div class="card-value"><span id="s-staking">0.00</span><span class="unit">USDT</span></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total Depositado</div>
+        <div class="card-value"><span id="s-depositado">0.00</span><span class="unit">USDT</span></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total Ganho</div>
+        <div class="card-value"><span id="s-ganho">0.00</span><span class="unit">USDT</span></div>
+      </div>
+    </div>
+
+    <div class="rendimento-card">
+      <div class="rendimento-info">
+        <div class="rendimento-label">Rendimento acumulado</div>
+        <div class="rendimento-valor"><span id="s-pendente">0.000000</span><span class="unit"> USDT</span></div>
+        <div class="rendimento-desc">Clique para transferir para saldo disponível</div>
+      </div>
+      <button class="btn-coletar" onclick="coletarRendimento()">⚡ Coletar</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label" style="margin-bottom:16px">Histórico de aportes</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Valor</th><th>TXID</th><th>Método</th><th>Status</th><th>Data</th></tr></thead>
+          <tbody id="aportes-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DEPOSITAR ── -->
+  <div class="content" id="page-depositar">
+    <div class="info-box">
+      <strong>Como depositar:</strong> Envie USDT (ERC-20/TRC-20) para a carteira abaixo, copie o TXID da transação e registre seu aporte. Após confirmação na blockchain, o admin aprovará e seu saldo ficará ativo em staking.
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Carteira de depósito <span>USDT</span></div>
+      <div class="wallet-box">
+        <div class="wallet-addr" id="carteira-deposito">Carregando...</div>
+        <button class="copy-btn" onclick="copiarCarteira()">Copiar</button>
+      </div>
+      <div style="font-size:10px;color:var(--text-faint);margin-bottom:24px">
+        ⚠️ Envie apenas USDT. Outros ativos não serão recuperados.
+      </div>
+
+      <div class="section-title">Registrar aporte <span>mín. <span id="dep-minimo">50</span> USDT</span></div>
+      <div class="form-row">
+        <div class="field">
+          <label>Valor enviado (USDT)</label>
+          <input type="number" id="dep-valor" placeholder="Ex: 100" min="50" step="0.01">
+        </div>
+        <div class="field">
+          <label>TXID da transação</label>
+          <input type="text" id="dep-txid" placeholder="0x...">
+          <div class="hint">Hash da transação na blockchain</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="registrarAporte()">Registrar aporte</button>
+    </div>
+  </div>
+
+  <!-- ── SACAR ── -->
+  <div class="content" id="page-sacar">
+    <div class="cards-grid" style="margin-bottom:24px">
+      <div class="card highlight">
+        <div class="card-label">Disponível para saque</div>
+        <div class="card-value"><span id="saq-disponivel">0.000000</span><span class="unit">USDT</span></div>
+        <div class="card-sub">Rendimentos coletados</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total Sacado</div>
+        <div class="card-value"><span id="saq-total">0.00</span><span class="unit">USDT</span></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Taxa de Saque</div>
+        <div class="card-value"><span id="saq-taxa">3</span><span class="unit">%</span></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="section-title">Solicitar saque <span>USDT ERC-20</span></div>
+      <div class="form-row">
+        <div class="field">
+          <label>Valor a sacar (USDT)</label>
+          <input type="number" id="saq-valor" placeholder="Ex: 50" min="10" step="0.01">
+          <div class="hint">Mínimo: <span id="saq-minimo">10</span> USDT</div>
+        </div>
+        <div class="field">
+          <label>Carteira destino (ERC-20)</label>
+          <input type="text" id="saq-carteira" placeholder="0x...">
+          <div class="hint">42 caracteres — verifique antes de confirmar</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px;padding:16px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px">
+          <span style="color:var(--text-dim)">Valor solicitado</span>
+          <span class="mono" id="preview-bruto">0.00 USDT</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px">
+          <span style="color:var(--text-dim)">Taxa (<span id="preview-taxa-pct">3</span>%)</span>
+          <span class="mono" style="color:var(--red)" id="preview-taxa">-0.00 USDT</span>
+        </div>
+        <div style="height:1px;background:var(--border);margin:8px 0"></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <span style="color:var(--text)">Você recebe</span>
+          <span class="mono" style="color:var(--green);font-size:14px" id="preview-liquido">0.00 USDT</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="solicitarSaque()">Solicitar saque</button>
+    </div>
+
+    <div class="divider"></div>
+    <div class="card">
+      <div class="card-label" style="margin-bottom:16px">Histórico de saques</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Valor</th><th>Carteira</th><th>Taxa</th><th>Líquido</th><th>Status</th><th>Data</th></tr></thead>
+          <tbody id="saques-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTÓRICO ── -->
+  <div class="content" id="page-historico">
+    <div class="card">
+      <div class="card-label" style="margin-bottom:16px">Extrato completo</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Valor</th><th>Descrição</th><th>Data</th></tr></thead>
+          <tbody id="hist-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ADMIN ── -->
+  <div class="content" id="page-admin">
+
+    <div class="admin-stats" id="admin-stats-grid"></div>
+
+    <!-- Tabs admin -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" onclick="switchAdminTab('aportes')">Aportes Pendentes</button>
+      <button class="btn btn-outline btn-sm" onclick="switchAdminTab('saques')">Saques Pendentes</button>
+      <button class="btn btn-outline btn-sm" onclick="switchAdminTab('usuarios')">Usuários</button>
+      <button class="btn btn-outline btn-sm" onclick="switchAdminTab('config')">Configurações</button>
+      <button class="btn btn-outline btn-sm" onclick="switchAdminTab('creditar')">Crédito Manual</button>
+    </div>
+
+    <!-- Aportes pendentes -->
+    <div id="admin-tab-aportes">
+      <div class="section-title">Aportes Pendentes</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Usuário</th><th>Valor</th><th>TXID</th><th>Método</th><th>Data</th><th>Ações</th></tr></thead>
+          <tbody id="admin-aportes-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Saques pendentes -->
+    <div id="admin-tab-saques" style="display:none">
+      <div class="section-title">Saques Pendentes</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Usuário</th><th>Valor</th><th>Carteira</th><th>Líquido</th><th>Data</th><th>Ações</th></tr></thead>
+          <tbody id="admin-saques-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Usuários -->
+    <div id="admin-tab-usuarios" style="display:none">
+      <div class="section-title">Usuários</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Usuário</th><th>Email</th><th>Staking</th><th>Disponível</th><th>Total Ganho</th><th>Depositado</th><th>Cadastro</th></tr></thead>
+          <tbody id="admin-users-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Config -->
+    <div id="admin-tab-config" style="display:none">
+      <div class="section-title">Configurações da Plataforma</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Rendimento Diário (ex: 0.02 = 2%)</label>
+          <input type="number" id="cfg-rendimento" step="0.001" min="0">
+        </div>
+        <div class="field">
+          <label>Aporte Mínimo (USDT)</label>
+          <input type="number" id="cfg-aporte-min" step="1">
+        </div>
+        <div class="field">
+          <label>Saque Mínimo (USDT)</label>
+          <input type="number" id="cfg-saque-min" step="1">
+        </div>
+        <div class="field">
+          <label>Taxa de Saque (ex: 0.03 = 3%)</label>
+          <input type="number" id="cfg-taxa-saque" step="0.001">
+        </div>
+        <div class="field">
+          <label>Lock de Dias após Aporte</label>
+          <input type="number" id="cfg-lock" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Carteira de Depósito</label>
+          <input type="text" id="cfg-carteira">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="salvarConfig()">Salvar configurações</button>
+    </div>
+
+    <!-- Crédito manual -->
+    <div id="admin-tab-creditar" style="display:none">
+      <div class="section-title">Crédito Manual</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Usuário</label>
+          <input type="text" id="cred-usuario" placeholder="username">
+        </div>
+        <div class="field">
+          <label>Valor (USDT)</label>
+          <input type="number" id="cred-valor" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label>Tipo</label>
+          <select id="cred-tipo">
+            <option value="disponivel">Saldo Disponível</option>
+            <option value="staking">Saldo em Staking</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="creditarManual()">Creditar</button>
+    </div>
+
+  </div>
+
+</main>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── STATE ──
+let meData = null;
+let taxaPct = 2;
+let toastTimer = null;
+let refreshTimer = null;
+
+// ── INIT ──
+async function init() {
+  startClock();
+  await loadMe();
+  loadHistoricoMini();
+  loadAportes();
+  loadSaques();
+  loadHistorico();
+  startAutoRefresh();
+}
+
+// ── CLOCK ──
+function startClock() {
+  function tick() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString('pt-BR');
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ── AUTO REFRESH ──
+function startAutoRefresh() {
+  refreshTimer = setInterval(() => {
+    loadMe(true);
+  }, 30000); // Atualiza a cada 30s
+}
+
+// ── LOAD ME ──
+async function loadMe(silent = false) {
+  try {
+    const r = await fetch('/api/me');
+    if (r.status === 401) { location.href = '/login'; return; }
+    meData = await r.json();
+
+    // Atualizar UI
+    const u = meData.user;
+    document.getElementById('user-name-display').textContent = u;
+    document.getElementById('user-avatar').textContent = u[0].toUpperCase();
+    taxaPct = meData.taxa_diaria_pct;
+
+    // Dashboard
+    animateValue('d-staking', meData.saldo_em_staking);
+    animateValue('d-disponivel', meData.saldo_disponivel);
+    animateValue('d-ganho', meData.total_ganho);
+    document.getElementById('d-taxa').textContent = meData.taxa_diaria_pct;
+    document.getElementById('d-pendente').textContent = meData.rendimento_pendente.toFixed(6);
+
+    const staking = meData.saldo_em_staking;
+    const taxa = meData.taxa_diaria;
+    document.getElementById('proj-7').textContent = '+' + (staking * taxa * 7).toFixed(4) + ' USDT';
+    document.getElementById('proj-30').textContent = '+' + (staking * taxa * 30).toFixed(4) + ' USDT';
+    document.getElementById('proj-365').textContent = '+' + (staking * taxa * 365).toFixed(2) + ' USDT';
+
+    const desc = staking > 0
+      ? `Rendendo +${meData.taxa_diaria_pct}% ao dia sobre ${staking.toFixed(2)} USDT em staking`
+      : 'Faça um depósito para começar a gerar rendimentos';
+    document.getElementById('d-pendente-desc').textContent = desc;
+
+    // Staking page
+    document.getElementById('s-staking').textContent = staking.toFixed(6);
+    document.getElementById('s-disponivel') && (document.getElementById('s-disponivel').textContent = meData.saldo_disponivel.toFixed(6));
+    document.getElementById('s-depositado').textContent = meData.total_depositado.toFixed(2);
+    document.getElementById('s-ganho').textContent = meData.total_ganho.toFixed(6);
+    document.getElementById('s-pendente').textContent = meData.rendimento_pendente.toFixed(6);
+
+    // Sacar page
+    document.getElementById('saq-disponivel').textContent = meData.saldo_disponivel.toFixed(6);
+    document.getElementById('saq-total').textContent = meData.total_sacado.toFixed(2);
+    document.getElementById('saq-taxa').textContent = meData.taxa_saque_pct;
+    document.getElementById('saq-minimo').textContent = meData.saque_minimo;
+    document.getElementById('preview-taxa-pct').textContent = meData.taxa_saque_pct;
+
+    // Depositar
+    document.getElementById('carteira-deposito').textContent = meData.carteira_deposito;
+    document.getElementById('dep-minimo').textContent = meData.aporte_minimo;
+
+    // Admin
+    if (meData.is_admin) {
+      document.getElementById('admin-nav').style.display = 'flex';
+      loadAdminDashboard();
+    }
+
+  } catch(e) {
+    if (!silent) showToast('Erro ao carregar dados', 'error');
+  }
+}
+
+function animateValue(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = parseFloat(val).toFixed(6);
+}
+
+// ── COLETAR ──
+async function coletarRendimento() {
+  const btn = document.getElementById('btn-coletar');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/coletar', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    showToast('✓ ' + data.message, 'success');
+    await loadMe();
+    loadHistoricoMini();
+    loadHistorico();
+  } catch(e) {
+    showToast(e.message, 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── DEPOSITAR ──
+async function registrarAporte() {
+  const valor = parseFloat(document.getElementById('dep-valor').value);
+  const txid = document.getElementById('dep-txid').value.trim();
+  if (!valor || valor <= 0) return showToast('Informe o valor', 'error');
+  if (!txid) return showToast('Informe o TXID da transação', 'error');
+  try {
+    const r = await fetch('/api/aporte', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valor, txid })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    showToast('✓ ' + data.message, 'success');
+    document.getElementById('dep-valor').value = '';
+    document.getElementById('dep-txid').value = '';
+    loadAportes();
+  } catch(e) {
+    showToast(e.message, 'error');
+  }
+}
+
+// ── SAQUE ──
+document.addEventListener('DOMContentLoaded', () => {
+  const valInput = document.getElementById('saq-valor');
+  if (valInput) {
+    valInput.addEventListener('input', () => {
+      const val = parseFloat(valInput.value) || 0;
+      const taxa = meData ? meData.taxa_saque_pct / 100 : 0.03;
+      const taxaVal = val * taxa;
+      const liquido = val - taxaVal;
+      document.getElementById('preview-bruto').textContent = val.toFixed(2) + ' USDT';
+      document.getElementById('preview-taxa').textContent = '-' + taxaVal.toFixed(4) + ' USDT';
+      document.getElementById('preview-liquido').textContent = liquido.toFixed(4) + ' USDT';
+    });
+  }
+});
+
+async function solicitarSaque() {
+  const valor = parseFloat(document.getElementById('saq-valor').value);
+  const carteira = document.getElementById('saq-carteira').value.trim();
+  if (!valor || valor <= 0) return showToast('Informe o valor', 'error');
+  if (!carteira) return showToast('Informe a carteira de destino', 'error');
+  try {
+    const r = await fetch('/api/saque', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valor, carteira })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    showToast('✓ ' + data.message, 'success');
+    document.getElementById('saq-valor').value = '';
+    document.getElementById('saq-carteira').value = '';
+    await loadMe();
+    loadSaques();
+  } catch(e) {
+    showToast(e.message, 'error');
+  }
+}
+
+// ── HISTÓRICO ──
+async function loadHistoricoMini() {
+  try {
+    const r = await fetch('/api/historico');
+    const data = await r.json();
+    const tbody = document.getElementById('hist-mini');
+    if (!tbody) return;
+    tbody.innerHTML = data.slice(0, 8).map(m => `
+      <tr>
+        <td><span class="badge ${getBadgeClass(m.tipo)}">${m.tipo}</span></td>
+        <td class="mono" style="color:${m.tipo.includes('SAQUE')?'var(--red)':'var(--green)'}">
+          ${m.tipo.includes('SAQUE')?'-':'+'} ${parseFloat(m.valor).toFixed(4)}
+        </td>
+        <td style="color:var(--text-dim);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descricao||'—'}</td>
+        <td style="color:var(--text-faint);white-space:nowrap">${formatDate(m.data_evento)}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-faint);padding:20px">Nenhuma movimentação</td></tr>';
+  } catch(e) {}
+}
+
+async function loadHistorico() {
+  try {
+    const r = await fetch('/api/historico');
+    const data = await r.json();
+    const tbody = document.getElementById('hist-table');
+    if (!tbody) return;
+    tbody.innerHTML = data.map(m => `
+      <tr>
+        <td><span class="badge ${getBadgeClass(m.tipo)}">${m.tipo}</span></td>
+        <td class="mono" style="color:${m.tipo.includes('SAQUE')?'var(--red)':'var(--green)'}">
+          ${m.tipo.includes('SAQUE')?'-':'+'} ${parseFloat(m.valor).toFixed(6)} USDT
+        </td>
+        <td style="color:var(--text-dim)">${m.descricao||'—'}</td>
+        <td style="color:var(--text-faint);white-space:nowrap">${formatDate(m.data_evento)}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-faint);padding:20px">Nenhuma movimentação</td></tr>';
+  } catch(e) {}
+}
+
+async function loadAportes() {
+  try {
+    const r = await fetch('/api/meus_aportes');
+    const data = await r.json();
+    const tbody = document.getElementById('aportes-table');
+    if (!tbody) return;
+    tbody.innerHTML = data.map(a => `
+      <tr>
+        <td class="mono">${parseFloat(a.valor).toFixed(2)} USDT</td>
+        <td class="mono" style="max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${a.txid}">${a.txid ? a.txid.slice(0,12)+'...' : '—'}</td>
+        <td style="color:var(--text-dim);text-transform:uppercase">${a.metodo}</td>
+        <td><span class="badge ${a.status==='aprovado'?'badge-approved':a.status==='rejeitado'?'badge-rejected':'badge-pending'}">${a.status}</span></td>
+        <td style="color:var(--text-faint);white-space:nowrap">${formatDate(a.data_aporte)}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:20px">Nenhum aporte</td></tr>';
+  } catch(e) {}
+}
+
+async function loadSaques() {
+  try {
+    const r = await fetch('/api/meus_saques');
+    const data = await r.json();
+    const tbody = document.getElementById('saques-table');
+    if (!tbody) return;
+    tbody.innerHTML = data.map(s => `
+      <tr>
+        <td class="mono">${parseFloat(s.valor).toFixed(4)}</td>
+        <td class="mono" style="max-width:100px;overflow:hidden;text-overflow:ellipsis" title="${s.carteira}">${s.carteira.slice(0,8)}...${s.carteira.slice(-4)}</td>
+        <td class="mono" style="color:var(--red)">${parseFloat(s.taxa).toFixed(4)}</td>
+        <td class="mono" style="color:var(--green)">${parseFloat(s.valor_liquido).toFixed(4)}</td>
+        <td><span class="badge ${s.status==='aprovado'?'badge-approved':s.status==='rejeitado'?'badge-rejected':'badge-pending'}">${s.status}</span></td>
+        <td style="color:var(--text-faint);white-space:nowrap">${formatDate(s.data_solicitacao)}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);padding:20px">Nenhum saque</td></tr>';
+  } catch(e) {}
+}
+
+// ── ADMIN ──
+async function loadAdminDashboard() {
+  try {
+    const r = await fetch('/api/admin/dashboard');
+    const d = await r.json();
+    const grid = document.getElementById('admin-stats-grid');
+    if (!grid) return;
+    grid.innerHTML = [
+      ['Usuários', d.total_usuarios, ''],
+      ['Em Staking', d.total_em_staking.toFixed(2) + ' USDT', ''],
+      ['Disponível', d.total_disponivel.toFixed(2) + ' USDT', ''],
+      ['Aportes Pendentes', d.aportes_pendentes, '⚠️'],
+      ['Saques Pendentes', d.saques_pendentes, '⚠️'],
+      ['Rendimentos Pagos', d.total_rendimentos_pagos.toFixed(2) + ' USDT', ''],
+    ].map(([label, val, icon]) => `
+      <div class="admin-stat">
+        <div class="admin-stat-val">${icon} ${val}</div>
+        <div class="admin-stat-label">${label}</div>
+      </div>
+    `).join('');
+
+    const pending = d.aportes_pendentes + d.saques_pendentes;
+    const badge = document.getElementById('admin-badge');
+    if (badge) {
+      badge.textContent = pending;
+      badge.style.display = pending > 0 ? 'inline' : 'none';
+    }
+
+    loadAdminAportes();
+    loadAdminSaques();
+    loadAdminUsuarios();
+    loadAdminConfig();
+  } catch(e) {}
+}
+
+async function loadAdminAportes() {
+  try {
+    const r = await fetch('/api/admin/aportes_pendentes');
+    const data = await r.json();
+    const tbody = document.getElementById('admin-aportes-table');
+    if (!tbody) return;
+    tbody.innerHTML = data.map(a => `
+      <tr>
+        <td class="mono">#${a.id}</td>
+        <td style="color:var(--gold)">${a.usuario}</td>
+        <td class="mono">${parseFloat(a.valor).toFixed(2)} USDT</td>
+        <td class="mono" style="max-width:100px;overflow:hidden;text-overflow:ellipsis" title="${a.txid}">${a.txid ? a.txid.slice(0,14)+'...' : '—'}</td>
+        <td style="text-transform:uppercase;color:var(--text-dim)">${a.metodo}</td>
+        <td style="color:var(--text-faint);white-space:nowrap">${formatDate(a.data_aporte)}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-success btn-sm" onclick="aprovarAporte(${a.id})">Aprovar</button>
+          <button class="btn btn-danger btn-sm" onclick="rejeitarAporte(${a.id})">Rejeitar</button>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:20px">Nenhum aporte pendente</td></tr>';
+  } catch(e) {}
+}
+
+async function loadAdminSaques() {
+  try {
+    const r = await fetch('/api/admin/saques_pendentes');
+    const data = await r.json();
+    const tbody = document.getElementById('admin-saques-table');
+    if (!tbody) return;
+    tbody.innerHTML = data.map(s => `
+      <tr>
+        <td class="mono">#${s.id}</td>
+        <td style="color:var(--gold)">${s.usuario}</td>
+        <td class="mono">${parseFloat(s.valor).toFixed(4)}</td>
+        <td class="mono" style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${s.carteira.slice(0,10)}...${s.carteira.slice(-4)}</td>
+        <td class="mono" style="color:var(--green)">${parseFloat(s.valor_liquido).toFixed(4)}</td>
+        <td style="color:var(--text-faint);white-space:nowrap">${formatDate(s.data_solicitacao)}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn btn-success btn-sm" onclick="aprovarSaque(${s.id})">Aprovar</button>
+          <button class="btn btn-danger btn-sm" onclick="rejeitarSaque(${s.id})">Rejeitar</button>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:20px">Nenhum saque pendente</td></tr>';
+  } catch(e) {}
+}
+
+async function loadAdminUsuarios() {
+  try {
+    const r = await fetch('/api/admin/usuarios');
+    const data = await r.json();
+    const tbody = document.getElementById('admin-users-table');
+    if (!tbody) return;
+    tbody.innerHTML = data.map(u => `
+      <tr>
+        <td style="color:var(--gold)">${u.username}</td>
+        <td style="color:var(--text-dim)">${u.email||'—'}</td>
+        <td class="mono">${parseFloat(u.saldo_em_staking).toFixed(2)}</td>
+        <td class="mono">${parseFloat(u.saldo_disponivel).toFixed(4)}</td>
+        <td class="mono" style="color:var(--green)">${parseFloat(u.total_ganho).toFixed(4)}</td>
+        <td class="mono">${parseFloat(u.total_depositado).toFixed(2)}</td>
+        <td style="color:var(--text-faint);white-space:nowrap">${formatDate(u.data_cadastro)}</td>
+      </tr>
+    `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);padding:20px">Nenhum usuário</td></tr>';
+  } catch(e) {}
+}
+
+async function loadAdminConfig() {
+  try {
+    const r = await fetch('/api/admin/config');
+    const d = await r.json();
+    document.getElementById('cfg-rendimento').value = d.rendimento_diario || '';
+    document.getElementById('cfg-aporte-min').value = d.aporte_minimo || '';
+    document.getElementById('cfg-saque-min').value = d.saque_minimo || '';
+    document.getElementById('cfg-taxa-saque').value = d.taxa_saque || '';
+    document.getElementById('cfg-lock').value = d.lock_dias || '';
+    document.getElementById('cfg-carteira').value = d.carteira_deposito || '';
+  } catch(e) {}
+}
+
+async function aprovarAporte(id) {
+  if (!confirm('Aprovar este aporte?')) return;
+  try {
+    const r = await fetch(`/api/admin/aprovar_aporte/${id}`, { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    showToast('✓ ' + d.message, 'success');
+    loadAdminDashboard();
+  } catch(e) { showToast(e.message, 'error') }
+}
+
+async function rejeitarAporte(id) {
+  if (!confirm('Rejeitar este aporte?')) return;
+  try {
+    const r = await fetch(`/api/admin/rejeitar_aporte/${id}`, { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    showToast(d.message, 'info');
+    loadAdminDashboard();
+  } catch(e) { showToast(e.message, 'error') }
+}
+
+async function aprovarSaque(id) {
+  const txid = prompt('TXID da transação de saída (opcional):') || '';
+  try {
+    const r = await fetch(`/api/admin/aprovar_saque/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ txid })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    showToast('✓ ' + d.message, 'success');
+    loadAdminDashboard();
+  } catch(e) { showToast(e.message, 'error') }
+}
+
+async function rejeitarSaque(id) {
+  if (!confirm('Rejeitar e estornar saldo?')) return;
+  try {
+    const r = await fetch(`/api/admin/rejeitar_saque/${id}`, { method: 'POST' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    showToast(d.message, 'info');
+    loadAdminDashboard();
+  } catch(e) { showToast(e.message, 'error') }
+}
+
+async function salvarConfig() {
+  const body = {
+    rendimento_diario: document.getElementById('cfg-rendimento').value,
+    aporte_minimo: document.getElementById('cfg-aporte-min').value,
+    saque_minimo: document.getElementById('cfg-saque-min').value,
+    taxa_saque: document.getElementById('cfg-taxa-saque').value,
+    lock_dias: document.getElementById('cfg-lock').value,
+    carteira_deposito: document.getElementById('cfg-carteira').value,
+  };
+  try {
+    const r = await fetch('/api/admin/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    showToast('✓ ' + d.message, 'success');
+    loadMe();
+  } catch(e) { showToast(e.message, 'error') }
+}
+
+async function creditarManual() {
+  const usuario = document.getElementById('cred-usuario').value.trim();
+  const valor = parseFloat(document.getElementById('cred-valor').value);
+  const tipo = document.getElementById('cred-tipo').value;
+  if (!usuario) return showToast('Informe o usuário', 'error');
+  if (!valor || valor <= 0) return showToast('Informe o valor', 'error');
+  if (!confirm(`Creditar ${valor} USDT em ${tipo} para ${usuario}?`)) return;
+  try {
+    const r = await fetch('/api/admin/creditar_manual', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario, valor, tipo })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    showToast('✓ ' + d.message, 'success');
+    loadAdminDashboard();
+  } catch(e) { showToast(e.message, 'error') }
+}
+
+function switchAdminTab(tab) {
+  ['aportes','saques','usuarios','config','creditar'].forEach(t => {
+    const el = document.getElementById('admin-tab-'+t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+// ── UTILS ──
+function copiarCarteira() {
+  const addr = document.getElementById('carteira-deposito').textContent;
+  navigator.clipboard.writeText(addr).then(() => showToast('Carteira copiada!', 'info'));
+}
+
+function confirmLogout() {
+  if (confirm('Sair da plataforma?')) location.href = '/logout';
+}
+
+function showToast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = '' }, 4000);
+}
+
+function getBadgeClass(tipo) {
+  if (tipo === 'APORTE') return 'badge-approved';
+  if (tipo === 'SAQUE') return 'badge-rejected';
+  if (tipo === 'RENDIMENTO') return 'badge-active';
+  return 'badge-pending';
+}
+
+function formatDate(str) {
+  if (!str) return '—';
+  try {
+    return new Date(str).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+  } catch { return str }
+}
+
+// ── NAVIGATION ──
+const pageTitles = {
+  dashboard: 'Dashboard',
+  staking: 'Meu Staking',
+  depositar: 'Depositar',
+  sacar: 'Sacar',
+  historico: 'Histórico',
+  admin: 'Administração',
+};
+
+function showPage(page) {
+  document.querySelectorAll('.content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const content = document.getElementById('page-' + page);
+  if (content) content.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(el => {
+    if (el.getAttribute('onclick')?.includes("'" + page + "'")) el.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = pageTitles[page] || page;
+  closeSidebar();
+
+  if (page === 'admin') loadAdminDashboard();
+  if (page === 'historico') loadHistorico();
+  if (page === 'staking') loadAportes();
+  if (page === 'sacar') loadSaques();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ── BOOT ──
+init();
+</script>
+</body>
+</html>
