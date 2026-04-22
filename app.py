@@ -70,21 +70,56 @@ def rate_limit(max_calls=10, window=300, block_secs=900):
     def deco(f):
         @wraps(f)
         def wrap(*a, **kw):
+            # GET requests nunca são bloqueados — só POST
+            if request.method == 'GET':
+                return f(*a, **kw)
             ip = get_ip()
             if is_blocked(ip):
                 rem = int((_blocked_ips.get(ip, 0) - time.time()) / 60) + 1
-                return jsonify({'error': f'IP bloqueado por {rem} min. Muitas tentativas.'}), 429
+                msg = f'Muitas tentativas. Aguarde {rem} minuto(s) e tente novamente.'
+                if request.path.startswith('/api/'):
+                    return jsonify({'error': msg}), 429
+                # Para páginas HTML retorna página de erro amigável
+                return html_resp(f'''<!doctype html><html><head><meta charset="utf-8">
+                <meta http-equiv="refresh" content="60;url={request.path}">
+                <title>Aguarde — VOLTRIX</title>
+                <style>body{{font-family:sans-serif;background:#050505;color:#e0d5c0;display:flex;
+                align-items:center;justify-content:center;min-height:100vh;text-align:center}}
+                .box{{padding:40px;border:1px solid rgba(212,175,55,.2);border-radius:4px;max-width:400px}}
+                h2{{color:#d4af37;font-size:24px;margin-bottom:16px}}
+                p{{color:#7a6a3a;font-size:14px;line-height:1.6}}
+                a{{color:#d4af37;text-decoration:none}}</style></head>
+                <body><div class="box"><h2>⏳ Aguarde</h2>
+                <p>{msg}</p><p style="margin-top:20px"><a href="{request.path}">← Tentar novamente</a></p>
+                </div></body></html>'''), 429
             now = time.time()
             with _rate_lock:
                 calls = [t for t in _rate_store[ip] if now - t < window]
                 calls.append(now)
                 _rate_store[ip] = calls
                 n = len(calls)
-            if n > max_calls * 2:
+            if n > max_calls * 3:
                 block_ip(ip, 3600)
-                return jsonify({'error': 'IP bloqueado por 1h por comportamento suspeito.'}), 429
+                msg = 'IP bloqueado por 1h por excesso de requisições.'
+                if request.path.startswith('/api/'):
+                    return jsonify({'error': msg}), 429
+                return html_resp(f'<p style="color:red;font-family:sans-serif;padding:20px">{msg}</p>'), 429
             if n > max_calls:
-                return jsonify({'error': f'Muitas requisições. Aguarde {window//60} min.'}), 429
+                msg = f'Muitas tentativas. Aguarde {window//60} minuto(s).'
+                if request.path.startswith('/api/'):
+                    return jsonify({'error': msg}), 429
+                return html_resp(f'''<!doctype html><html><head><meta charset="utf-8">
+                <meta http-equiv="refresh" content="60;url={request.path}">
+                <title>Aguarde — VOLTRIX</title>
+                <style>body{{font-family:sans-serif;background:#050505;color:#e0d5c0;display:flex;
+                align-items:center;justify-content:center;min-height:100vh;text-align:center}}
+                .box{{padding:40px;border:1px solid rgba(212,175,55,.2);border-radius:4px;max-width:400px}}
+                h2{{color:#d4af37;font-size:24px;margin-bottom:16px}}
+                p{{color:#7a6a3a;font-size:14px;line-height:1.6}}
+                a{{color:#d4af37;text-decoration:none}}</style></head>
+                <body><div class="box"><h2>⏳ Aguarde</h2>
+                <p>{msg}</p><p style="margin-top:20px"><a href="{request.path}">← Tentar novamente</a></p>
+                </div></body></html>'''), 429
             return f(*a, **kw)
         return wrap
     return deco
@@ -425,7 +460,7 @@ REGISTER_FORM = """<form method="post">
 
 # ── AUTH ROUTES ──
 @app.route('/login', methods=['GET','POST'])
-@rate_limit(max_calls=10, window=300, block_secs=900)
+@rate_limit(max_calls=30, window=300, block_secs=600)
 def login_page():
     if request.method == 'POST':
         username = san(request.form.get('username',''))
@@ -453,7 +488,7 @@ def login_page():
     return html_resp(render_auth('Login','Acesso à conta',LOGIN_FORM))
 
 @app.route('/register', methods=['GET','POST'])
-@rate_limit(max_calls=5, window=600, block_secs=1800)
+@rate_limit(max_calls=50, window=600, block_secs=120)
 def register_page():
     if request.method == 'POST':
         username = san(request.form.get('username',''))
