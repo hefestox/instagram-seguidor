@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VOLTRIX — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#d4af37;--gold-l:#f0d060;--gold-d:#b8920a;--gold-dim:#7a6a3a;
+  --gold-pale:rgba(212,175,55,.1);--gold-glow:rgba(212,175,55,.06);
+  --bg:#050505;--bg2:#090907;--bg3:#0d0d09;
+  --surface:#0f0f0a;--surface2:#141410;
+  --text:#e0d5c0;--text-d:#8a7a55;--text-f:#4a4030;
+  --border:rgba(212,175,55,.12);--border-b:rgba(212,175,55,.24);
+  --green:#3ddc84;--red:#e05252;--blue:#5ba3f5;
+  --sw:240px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Montserrat',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:2px}
+.layout{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:var(--sw);background:var(--bg2);border-right:1px solid var(--border);
+display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .3s}
+.s-logo{padding:28px 22px 24px;border-bottom:1px solid var(--border)}
+.s-brand{font-family:'Bebas Neue';font-size:28px;letter-spacing:6px;
+background:linear-gradient(135deg,var(--gold-d),var(--gold),var(--gold-l));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.s-sub{font-size:8px;letter-spacing:4px;color:var(--gold-dim);margin-top:1px}
+.nav{flex:1;padding:16px 0;overflow-y:auto}
+.nav-sec{font-size:7px;letter-spacing:3px;color:var(--text-f);text-transform:uppercase;padding:14px 22px 6px}
+.ni{display:flex;align-items:center;gap:10px;padding:10px 22px;cursor:pointer;
+font-size:10px;font-weight:500;letter-spacing:1.5px;color:var(--text-d);
+text-transform:uppercase;transition:all .2s;border-left:2px solid transparent;user-select:none}
+.ni:hover{color:var(--text);background:var(--gold-glow)}
+.ni.active{color:var(--gold);background:var(--gold-pale);border-left-color:var(--gold)}
+.ni svg{flex-shrink:0;opacity:.65}.ni.active svg{opacity:1}
+.nbadge{margin-left:auto;background:var(--gold);color:#050505;font-size:8px;font-weight:700;padding:2px 5px;border-radius:8px}
+.s-foot{padding:18px 22px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--gold-pale);border:1px solid var(--border-b);
+display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold)}
+.u-name{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.u-role{font-size:8px;color:var(--gold-dim);letter-spacing:1px}
+
+/* MAIN */
+.main{margin-left:var(--sw);flex:1}
+.topbar{padding:18px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;
+justify-content:space-between;background:rgba(5,5,5,.85);backdrop-filter:blur(12px);
+position:sticky;top:0;z-index:50}
+.page-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:3px;color:var(--text)}
+.tb-right{display:flex;align-items:center;gap:14px}
+.live{display:flex;align-items:center;gap:5px;font-size:8px;letter-spacing:2px;color:var(--green);text-transform:uppercase}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(61,220,132,.4)}50%{opacity:.7;box-shadow:0 0 0 4px rgba(61,220,132,0)}}
+
+/* CONTENT */
+.content{padding:28px;display:none}
+.content.active{display:block}
+
+/* CARDS */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:22px;
+position:relative;overflow:hidden;transition:border-color .2s}
+.card:hover{border-color:var(--border-b)}
+.card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .3s}
+.card:hover::after{opacity:.4}
+.card.hl{background:linear-gradient(135deg,var(--surface),rgba(212,175,55,.05));border-color:rgba(212,175,55,.2)}
+.clabel{font-size:8px;letter-spacing:3px;color:var(--text-f);text-transform:uppercase;margin-bottom:10px}
+.cval{font-family:'JetBrains Mono';font-size:24px;font-weight:300;color:var(--text);line-height:1}
+.cval .u{font-size:11px;color:var(--gold-dim);margin-left:3px}
+.csub{font-size:9px;color:var(--text-d);margin-top:6px;display:flex;align-items:center;gap:3px}
+.up{color:var(--green)}.down{color:var(--red)}
+.cicon{position:absolute;right:18px;top:18px;width:32px;height:32px;border-radius:50%;
+background:var(--gold-pale);display:flex;align-items:center;justify-content:center;color:var(--gold)}
+
+/* REND CARD */
+.rcard{background:linear-gradient(135deg,#080800,#0f0f00,#080800);border:1px solid rgba(212,175,55,.28);
+border-radius:2px;padding:26px 30px;margin-bottom:24px;display:flex;align-items:center;
+justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;overflow:hidden}
+.rcard::before{content:'';position:absolute;top:-40%;left:-5%;width:350px;height:280px;
+background:radial-gradient(ellipse,rgba(212,175,55,.07),transparent 70%);pointer-events:none}
+.ri{flex:1}
+.rlabel{font-size:8px;letter-spacing:4px;color:var(--gold-dim);text-transform:uppercase;margin-bottom:5px}
+.rval{font-family:'JetBrains Mono';font-size:38px;font-weight:300;color:var(--gold);line-height:1}
+.rval .u{font-size:14px;color:var(--gold-dim)}
+.rdesc{font-size:10px;color:var(--text-d);margin-top:6px}
+.btn-col{padding:14px 32px;background:linear-gradient(135deg,var(--gold-d),var(--gold));
+color:#050505;font-family:'Montserrat';font-size:10px;font-weight:700;letter-spacing:3px;
+text-transform:uppercase;border:none;border-radius:2px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-col:hover{opacity:.82;transform:translateY(-1px)}
+.btn-col:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+/* TAXA */
+.taxa-big{font-family:'Bebas Neue';font-size:48px;color:var(--gold);line-height:1;
+text-shadow:0 0 30px rgba(212,175,55,.3)}
+.taxa-sym{font-size:22px;color:var(--gold-dim)}
+
+/* PROJ */
+.proj{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:14px}
+.pitem{background:var(--surface);padding:12px 14px;text-align:center}
+.pperiod{font-size:8px;letter-spacing:2px;color:var(--text-f);text-transform:uppercase;margin-bottom:3px}
+.pval{font-family:'JetBrains Mono';font-size:13px;color:var(--green)}
+
+/* FORMS */
+.sec-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:var(--text);
+margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);
+display:flex;align-items:center;gap:10px}
+.sec-title span{font-family:'Montserrat';font-size:8px;letter-spacing:3px;color:var(--gold-dim);text-transform:uppercase;font-weight:400}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:8px;letter-spacing:2px;color:var(--text-d);text-transform:uppercase;margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;
+background:var(--surface);border:1px solid var(--border);border-radius:2px;
+color:var(--text);font-family:'Montserrat';font-size:13px;outline:none;transition:border-color .2s}
+.field input:focus,.field select:focus{border-color:rgba(212,175,55,.35)}
+.field .hint{font-size:9px;color:var(--text-f);margin-top:5px}
+.btn{padding:11px 24px;font-family:'Montserrat';font-size:9px;font-weight:700;letter-spacing:3px;
+text-transform:uppercase;border:none;border-radius:2px;cursor:pointer;transition:all .2s}
+.btn-p{background:linear-gradient(135deg,var(--gold-d),var(--gold));color:#050505}
+.btn-p:hover{opacity:.85}
+.btn-o{background:transparent;border:1px solid var(--border-b);color:var(--text-d)}
+.btn-o:hover{border-color:var(--gold);color:var(--gold)}
+.btn-g{background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.25);color:var(--green)}
+.btn-g:hover{background:rgba(61,220,132,.22)}
+.btn-r{background:rgba(224,82,82,.12);border:1px solid rgba(224,82,82,.25);color:var(--red)}
+.btn-r:hover{background:rgba(224,82,82,.22)}
+.btn-sm{padding:6px 12px;font-size:8px}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:9px 12px;font-size:7px;letter-spacing:2px;color:var(--text-f);
+text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:500}
+td{padding:11px 12px;border-bottom:1px solid rgba(212,175,55,.04);color:var(--text-d)}
+tr:hover td{background:var(--gold-glow)}
+.mono{font-family:'JetBrains Mono';font-size:11px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:2px;
+font-size:8px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase}
+.bp{background:rgba(212,175,55,.1);color:var(--gold);border:1px solid rgba(212,175,55,.2)}
+.ba{background:rgba(61,220,132,.1);color:var(--green);border:1px solid rgba(61,220,132,.2)}
+.br{background:rgba(224,82,82,.1);color:var(--red);border:1px solid rgba(224,82,82,.2)}
+
+/* WALLET BOX */
+.wbox{background:var(--surface);border:1px solid var(--border-b);border-radius:2px;
+padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.waddr{font-family:'JetBrains Mono';font-size:11px;color:var(--gold);word-break:break-all}
+.cbtn{background:var(--gold-pale);border:1px solid var(--border-b);color:var(--gold);
+padding:5px 11px;border-radius:2px;font-size:8px;letter-spacing:1px;cursor:pointer;white-space:nowrap;transition:all .2s}
+.cbtn:hover{background:rgba(212,175,55,.18)}
+
+/* INFO BOX */
+.ibox{background:rgba(212,175,55,.03);border:1px solid var(--border);border-left:2px solid var(--gold);
+border-radius:2px;padding:12px 14px;font-size:10px;color:var(--text-d);line-height:1.6;margin-bottom:18px}
+.ibox strong{color:var(--gold)}
+
+/* REDE */
+.rede-stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+.rs{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:16px 18px;text-align:center}
+.rs-val{font-family:'Bebas Neue';font-size:30px;color:var(--gold)}
+.rs-label{font-size:8px;letter-spacing:2px;color:var(--text-f);text-transform:uppercase;margin-top:2px}
+
+/* LINK BOX */
+.link-box{background:var(--surface);border:1px solid var(--border-b);border-radius:2px;
+padding:16px 18px;margin-bottom:20px}
+.link-url{font-family:'JetBrains Mono';font-size:11px;color:var(--gold);word-break:break-all;margin-bottom:10px}
+.link-info{font-size:9px;color:var(--text-d)}
+
+/* PREVIEW SAQUE */
+.preview{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:14px;margin-bottom:14px}
+.prev-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:7px}
+.prev-div{height:1px;background:var(--border);margin:8px 0}
+
+/* TOAST */
+#toast{position:fixed;bottom:28px;right:28px;padding:12px 18px;border-radius:2px;
+font-size:11px;font-weight:500;z-index:9999;transform:translateY(16px);
+opacity:0;transition:all .3s;pointer-events:none;max-width:300px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.success{background:rgba(61,220,132,.12);border:1px solid rgba(61,220,132,.3);color:var(--green)}
+#toast.error{background:rgba(224,82,82,.12);border:1px solid rgba(224,82,82,.3);color:var(--red)}
+#toast.info{background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.2);color:var(--gold)}
+
+/* DIVIDER */
+.div{height:1px;background:var(--border);margin:22px 0}
+
+/* ADMIN */
+.astats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px}
+.as{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:16px 18px}
+.as-val{font-family:'JetBrains Mono';font-size:20px;font-weight:300;color:var(--text)}
+.as-label{font-size:8px;letter-spacing:2px;color:var(--text-f);text-transform:uppercase;margin-top:3px}
+
+/* MOBILE */
+.mtoggle{display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:4px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
+  .overlay.show{display:block}.main{margin-left:0}.mtoggle{display:block}
+  .content{padding:18px 14px}.grid{grid-template-columns:1fr 1fr}.frow{grid-template-columns:1fr}
+  .rval{font-size:26px}.taxa-big{font-size:36px}
+}
+</style>
+</head>
+<body>
+
+<div id="overlay" class="overlay" onclick="closeSb()"></div>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="s-logo">
+    <div class="s-brand">VOLTRIX</div>
+    <div class="s-sub">Digital Asset Staking</div>
+  </div>
+  <div class="nav">
+    <div class="nav-sec">Principal</div>
+    <div class="ni active" onclick="go('dashboard')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="ni" onclick="go('staking')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Staking
+    </div>
+    <div class="ni" onclick="go('depositar')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+      Depositar
+    </div>
+    <div class="ni" onclick="go('sacar')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Sacar
+    </div>
+    <div class="ni" onclick="go('rede')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v3m0 0l-5.5 5m5.5-5l5.5 5"/></svg>
+      Rede Binária
+    </div>
+    <div class="nav-sec">Conta</div>
+    <div class="ni" onclick="go('historico')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Histórico
+    </div>
+    <div class="ni" id="admin-ni" onclick="go('admin')" style="display:none">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Admin
+      <span class="nbadge" id="admin-badge" style="display:none">0</span>
+    </div>
+  </div>
+  <div class="s-foot" onclick="confirmLogout()">
+    <div class="avatar" id="av">?</div>
+    <div style="flex:1;overflow:hidden">
+      <div class="u-name" id="uname">...</div>
+      <div class="u-role">Investidor</div>
+    </div>
+    <svg width="13" height="13" fill="none" stroke="#4a4030" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px">
+      <button class="mtoggle" onclick="toggleSb()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="page-title" id="ptitle">DASHBOARD</div>
+    </div>
+    <div class="tb-right">
+      <div class="live"><div class="ldot"></div>Live</div>
+      <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-d)" id="clock">--:--:--</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="content active" id="page-dashboard">
+    <div class="grid">
+      <div class="card hl">
+        <div class="clabel">Saldo em Staking</div>
+        <div class="cval"><span id="d-staking">0.000000</span><span class="u">USDT</span></div>
+        <div class="csub"><span class="up">▲</span>Gerando rendimentos</div>
+        <div class="cicon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+      </div>
+      <div class="card">
+        <div class="clabel">Disponível</div>
+        <div class="cval"><span id="d-disp">0.000000</span><span class="u">USDT</span></div>
+        <div class="csub">Para saque</div>
+        <div class="cicon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2v20M17 7H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg></div>
+      </div>
+      <div class="card">
+        <div class="clabel">Total Ganho</div>
+        <div class="cval"><span id="d-ganho">0.000000</span><span class="u">USDT</span></div>
+        <div class="csub">Rendimento + Comissões</div>
+        <div class="cicon"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+      </div>
+      <div class="card">
+        <div class="clabel">Taxa Diária</div>
+        <div style="display:flex;align-items:baseline;gap:2px">
+          <div class="taxa-big" id="d-taxa">2</div>
+          <div class="taxa-sym">%</div>
+        </div>
+        <div style="font-size:8px;letter-spacing:2px;color:var(--text-f);text-transform:uppercase;margin-top:2px">rendimento/dia</div>
+      </div>
+    </div>
+
+    <div class="rcard">
+      <div class="ri">
+        <div class="rlabel">Rendimento disponível para coletar</div>
+        <div class="rval"><span id="d-pend">0.000000</span><span class="u"> USDT</span></div>
+        <div class="rdesc" id="d-desc">Faça um depósito para começar a gerar rendimentos</div>
+      </div>
+      <button class="btn-col" id="btn-col" onclick="coletar()">⚡ Coletar agora</button>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <div class="clabel" style="margin-bottom:12px">Projeção de rendimento</div>
+      <div class="proj">
+        <div class="pitem"><div class="pperiod">7 dias</div><div class="pval" id="p7">—</div></div>
+        <div class="pitem"><div class="pperiod">30 dias</div><div class="pval" id="p30">—</div></div>
+        <div class="pitem"><div class="pperiod">365 dias</div><div class="pval" id="p365">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="clabel" style="margin-bottom:14px">Últimas movimentações</div>
+      <div class="tw"><table><thead><tr><th>Tipo</th><th>Valor</th><th>Descrição</th><th>Data</th></tr></thead><tbody id="hm"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- STAKING -->
+  <div class="content" id="page-staking">
+    <div class="grid" style="margin-bottom:20px">
+      <div class="card"><div class="clabel">Em Staking</div><div class="cval"><span id="s-stk">0.00</span><span class="u">USDT</span></div></div>
+      <div class="card"><div class="clabel">Depositado</div><div class="cval"><span id="s-dep">0.00</span><span class="u">USDT</span></div></div>
+      <div class="card"><div class="clabel">Total Ganho</div><div class="cval"><span id="s-gnh">0.00</span><span class="u">USDT</span></div></div>
+    </div>
+    <div class="rcard">
+      <div class="ri">
+        <div class="rlabel">Rendimento acumulado</div>
+        <div class="rval"><span id="s-pend">0.000000</span><span class="u"> USDT</span></div>
+        <div class="rdesc">Clique para transferir para saldo disponível</div>
+      </div>
+      <button class="btn-col" onclick="coletar()">⚡ Coletar</button>
+    </div>
+    <div class="card">
+      <div class="clabel" style="margin-bottom:14px">Histórico de aportes</div>
+      <div class="tw"><table><thead><tr><th>Valor</th><th>TXID</th><th>Método</th><th>Status</th><th>Data</th></tr></thead><tbody id="at"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- DEPOSITAR -->
+  <div class="content" id="page-depositar">
+    <div class="ibox"><strong>Como depositar:</strong> Envie USDT (ERC-20 ou TRC-20) para a carteira abaixo, copie o TXID da transação e registre seu aporte abaixo. Após confirmação, o administrador aprovará e seu saldo ficará ativo em staking.</div>
+    <div class="sec-title">Carteira de depósito <span>USDT</span></div>
+    <div class="wbox">
+      <div class="waddr" id="dep-carteira">Carregando...</div>
+      <button class="cbtn" onclick="copiar('dep-carteira')">Copiar</button>
+    </div>
+    <div style="font-size:9px;color:var(--text-f);margin-bottom:22px">⚠ Envie apenas USDT. Outros ativos não serão recuperados.</div>
+    <div class="sec-title">Registrar aporte <span>mín. <span id="dep-min">50</span> USDT</span></div>
+    <div class="frow">
+      <div class="field"><label>Valor enviado (USDT)</label><input type="number" id="dv" placeholder="Ex: 100" min="50" step="0.01"></div>
+      <div class="field"><label>TXID da transação</label><input type="text" id="dt" placeholder="0x...ou hash TRC20"><div class="hint">Hash da transação na blockchain</div></div>
+    </div>
+    <button class="btn btn-p" onclick="registrarAporte()">Registrar aporte</button>
+  </div>
+
+  <!-- SACAR -->
+  <div class="content" id="page-sacar">
+    <div class="grid" style="margin-bottom:20px">
+      <div class="card hl"><div class="clabel">Disponível para saque</div><div class="cval"><span id="sq-disp">0.000000</span><span class="u">USDT</span></div></div>
+      <div class="card"><div class="clabel">Total Sacado</div><div class="cval"><span id="sq-tot">0.00</span><span class="u">USDT</span></div></div>
+      <div class="card"><div class="clabel">Taxa de saque</div><div class="cval"><span id="sq-taxa">3</span><span class="u">%</span></div></div>
+    </div>
+    <div class="sec-title">Solicitar saque <span>ERC-20</span></div>
+    <div class="frow">
+      <div class="field"><label>Valor (USDT)</label><input type="number" id="sv" placeholder="Ex: 50" step="0.01"><div class="hint">Mín: <span id="sq-min">10</span> USDT</div></div>
+      <div class="field"><label>Carteira destino (ERC-20)</label><input type="text" id="sc" placeholder="0x..."><div class="hint">42 caracteres — verifique antes</div></div>
+    </div>
+    <div class="preview">
+      <div class="prev-row"><span style="color:var(--text-d)">Solicitado</span><span class="mono" id="pv-bruto">0.00 USDT</span></div>
+      <div class="prev-row"><span style="color:var(--text-d)">Taxa (<span id="pv-taxa-pct">3</span>%)</span><span class="mono" style="color:var(--red)" id="pv-taxa">-0.00 USDT</span></div>
+      <div class="prev-div"></div>
+      <div class="prev-row"><span style="color:var(--text)">Você recebe</span><span class="mono" style="color:var(--green);font-size:14px" id="pv-liq">0.00 USDT</span></div>
+    </div>
+    <button class="btn btn-p" onclick="solicitarSaque()">Solicitar saque</button>
+    <div class="div"></div>
+    <div class="card">
+      <div class="clabel" style="margin-bottom:14px">Histórico de saques</div>
+      <div class="tw"><table><thead><tr><th>Valor</th><th>Carteira</th><th>Taxa</th><th>Líquido</th><th>Status</th><th>Data</th></tr></thead><tbody id="st"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- REDE BINÁRIA -->
+  <div class="content" id="page-rede">
+    <div class="rede-stat" id="rede-stats"></div>
+    <div class="sec-title">Seu link de indicação <span>compartilhe</span></div>
+    <div class="link-box">
+      <div class="link-url" id="link-url">Carregando...</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="cbtn" onclick="copiar('link-url')">Copiar link</button>
+        <button class="cbtn" id="btn-copy-codigo">Copiar código</button>
+      </div>
+      <div class="link-info" style="margin-top:10px">Você recebe <strong style="color:var(--gold)">20%</strong> sobre aportes dos seus indicados diretos e <strong style="color:var(--gold)">10%</strong> dos indicados deles.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-wrap:wrap">
+      <div>
+        <div class="sec-title" style="font-size:16px">Nível 1 <span>20% comissão</span></div>
+        <div class="tw"><table><thead><tr><th>Usuário</th><th>Em Staking</th><th>Depositado</th><th>Total Ganho</th></tr></thead><tbody id="n1t"></tbody></table></div>
+      </div>
+      <div>
+        <div class="sec-title" style="font-size:16px">Nível 2 <span>10% comissão</span></div>
+        <div class="tw"><table><thead><tr><th>Usuário</th><th>Em Staking</th><th>Depositado</th></tr></thead><tbody id="n2t"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div class="content" id="page-historico">
+    <div class="card">
+      <div class="clabel" style="margin-bottom:14px">Extrato completo</div>
+      <div class="tw"><table><thead><tr><th>Tipo</th><th>Valor</th><th>Descrição</th><th>Data</th></tr></thead><tbody id="ht"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="content" id="page-admin">
+    <div class="astats" id="astats"></div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <button class="btn btn-p btn-sm" onclick="atab('aportes')">Aportes</button>
+      <button class="btn btn-o btn-sm" onclick="atab('saques')">Saques</button>
+      <button class="btn btn-o btn-sm" onclick="atab('usuarios')">Usuários</button>
+      <button class="btn btn-o btn-sm" onclick="atab('config')">Config</button>
+      <button class="btn btn-o btn-sm" onclick="atab('creditar')">Creditar</button>
+      <button class="btn btn-o btn-sm" onclick="atab('logs')">Logs</button>
+    </div>
+
+    <div id="atab-aportes">
+      <div class="sec-title" style="font-size:16px">Aportes Pendentes</div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Usuário</th><th>Valor</th><th>TXID</th><th>Data</th><th>Ações</th></tr></thead><tbody id="aa"></tbody></table></div>
+    </div>
+    <div id="atab-saques" style="display:none">
+      <div class="sec-title" style="font-size:16px">Saques Pendentes</div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Usuário</th><th>Valor</th><th>Carteira</th><th>Líquido</th><th>Data</th><th>Ações</th></tr></thead><tbody id="as"></tbody></table></div>
+    </div>
+    <div id="atab-usuarios" style="display:none">
+      <div class="sec-title" style="font-size:16px">Usuários</div>
+      <div class="tw"><table><thead><tr><th>Usuário</th><th>Email</th><th>Staking</th><th>Disponível</th><th>Ganho</th><th>Comissão</th><th>Indicado por</th><th>Cadastro</th></tr></thead><tbody id="au"></tbody></table></div>
+    </div>
+    <div id="atab-config" style="display:none">
+      <div class="sec-title" style="font-size:16px">Configurações</div>
+      <div class="frow">
+        <div class="field"><label>Rendimento Diário (0.02 = 2%)</label><input type="number" id="cfg-r" step="0.001" min="0"></div>
+        <div class="field"><label>Aporte Mínimo (USDT)</label><input type="number" id="cfg-am"></div>
+        <div class="field"><label>Saque Mínimo (USDT)</label><input type="number" id="cfg-sm"></div>
+        <div class="field"><label>Taxa Saque (0.03 = 3%)</label><input type="number" id="cfg-ts" step="0.001"></div>
+        <div class="field"><label>Lock Dias</label><input type="number" id="cfg-ld" min="0"></div>
+        <div class="field"><label>Carteira Depósito</label><input type="text" id="cfg-cd"></div>
+        <div class="field"><label>Comissão N1 (0.20 = 20%)</label><input type="number" id="cfg-c1" step="0.01"></div>
+        <div class="field"><label>Comissão N2 (0.10 = 10%)</label><input type="number" id="cfg-c2" step="0.01"></div>
+      </div>
+      <button class="btn btn-p" onclick="salvarCfg()">Salvar configurações</button>
+    </div>
+    <div id="atab-creditar" style="display:none">
+      <div class="sec-title" style="font-size:16px">Crédito Manual</div>
+      <div class="frow">
+        <div class="field"><label>Usuário</label><input type="text" id="cr-u" placeholder="username"></div>
+        <div class="field"><label>Valor (USDT)</label><input type="number" id="cr-v" step="0.01"></div>
+        <div class="field"><label>Tipo</label><select id="cr-t"><option value="disponivel">Disponível</option><option value="staking">Staking</option></select></div>
+      </div>
+      <button class="btn btn-p" onclick="creditarManual()">Creditar</button>
+    </div>
+    <div id="atab-logs" style="display:none">
+      <div class="sec-title" style="font-size:16px">Logs de Segurança</div>
+      <div class="tw"><table><thead><tr><th>IP</th><th>Evento</th><th>Usuário</th><th>Detalhes</th><th>Data</th></tr></thead><tbody id="al"></tbody></table></div>
+    </div>
+  </div>
+</main>
+</div>
+<div id="toast"></div>
+
+<script>
+let me = null, toastT = null;
+const PAGES = {dashboard:'DASHBOARD',staking:'MEU STAKING',depositar:'DEPOSITAR',sacar:'SACAR',rede:'REDE BINÁRIA',historico:'HISTÓRICO',admin:'ADMINISTRAÇÃO'};
+
+async function init() {
+  clock();
+  await loadMe();
+  loadHMini(); loadAportes(); loadSaques(); loadHistorico();
+  setInterval(() => loadMe(true), 30000);
+}
+
+function clock() {
+  setInterval(() => document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-BR'), 1000);
+}
+
+async function loadMe(silent=false) {
+  try {
+    const r = await fetch('/api/me');
+    if (r.status===401) { location.href='/login'; return; }
+    me = await r.json();
+    document.getElementById('uname').textContent = me.user;
+    document.getElementById('av').textContent = me.user[0].toUpperCase();
+    document.getElementById('d-taxa').textContent = me.taxa_diaria_pct;
+    document.getElementById('d-staking').textContent = me.saldo_em_staking.toFixed(6);
+    document.getElementById('d-disp').textContent = me.saldo_disponivel.toFixed(6);
+    document.getElementById('d-ganho').textContent = (me.total_ganho + me.total_comissao).toFixed(6);
+    document.getElementById('d-pend').textContent = me.rendimento_pendente.toFixed(6);
+    document.getElementById('d-desc').textContent = me.saldo_em_staking > 0
+      ? `Rendendo +${me.taxa_diaria_pct}%/dia sobre ${me.saldo_em_staking.toFixed(2)} USDT`
+      : 'Faça um depósito para começar';
+    const t = me.taxa_diaria, s = me.saldo_em_staking;
+    document.getElementById('p7').textContent = `+${(s*t*7).toFixed(4)}`;
+    document.getElementById('p30').textContent = `+${(s*t*30).toFixed(4)}`;
+    document.getElementById('p365').textContent = `+${(s*t*365).toFixed(2)}`;
+    document.getElementById('s-stk').textContent = s.toFixed(6);
+    document.getElementById('s-dep').textContent = me.total_depositado.toFixed(2);
+    document.getElementById('s-gnh').textContent = me.total_ganho.toFixed(6);
+    document.getElementById('s-pend').textContent = me.rendimento_pendente.toFixed(6);
+    document.getElementById('sq-disp').textContent = me.saldo_disponivel.toFixed(6);
+    document.getElementById('sq-tot').textContent = me.total_sacado.toFixed(2);
+    document.getElementById('sq-taxa').textContent = me.taxa_saque_pct;
+    document.getElementById('sq-min').textContent = me.saque_minimo;
+    document.getElementById('pv-taxa-pct').textContent = me.taxa_saque_pct;
+    document.getElementById('dep-carteira').textContent = me.carteira_deposito;
+    document.getElementById('dep-min').textContent = me.aporte_minimo;
+    if (me.is_admin) { document.getElementById('admin-ni').style.display='flex'; loadAdminDash(); }
+  } catch(e) { if(!silent) toast('Erro ao carregar dados','error'); }
+}
+
+async function coletar() {
+  const b = document.getElementById('btn-col');
+  b.disabled = true;
+  try {
+    const r = await fetch('/api/coletar',{method:'POST'});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error);
+    toast('✓ '+d.message,'success');
+    await loadMe(); loadHMini(); loadHistorico();
+  } catch(e) { toast(e.message,'error'); }
+  finally { b.disabled=false; }
+}
+
+async function registrarAporte() {
+  const v=parseFloat(document.getElementById('dv').value);
+  const t=document.getElementById('dt').value.trim();
+  if(!v||v<=0) return toast('Informe o valor','error');
+  if(!t) return toast('Informe o TXID','error');
+  try {
+    const r=await fetch('/api/aporte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({valor:v,txid:t})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error);
+    toast('✓ '+d.message,'success');
+    document.getElementById('dv').value='';
+    document.getElementById('dt').value='';
+    loadAportes();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const sv=document.getElementById('sv');
+  if(sv) sv.addEventListener('input',()=>{
+    const v=parseFloat(sv.value)||0;
+    const tp=me?me.taxa_saque_pct/100:0.03;
+    const taxa=v*tp, liq=v-taxa;
+    document.getElementById('pv-bruto').textContent=v.toFixed(2)+' USDT';
+    document.getElementById('pv-taxa').textContent='-'+taxa.toFixed(4)+' USDT';
+    document.getElementById('pv-liq').textContent=liq.toFixed(4)+' USDT';
+  });
+});
+
+async function solicitarSaque() {
+  const v=parseFloat(document.getElementById('sv').value);
+  const c=document.getElementById('sc').value.trim();
+  if(!v||v<=0) return toast('Informe o valor','error');
+  if(!c) return toast('Informe a carteira','error');
+  try {
+    const r=await fetch('/api/saque',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({valor:v,carteira:c})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.error);
+    toast('✓ '+d.message,'success');
+    document.getElementById('sv').value='';
+    document.getElementById('sc').value='';
+    await loadMe(); loadSaques();
+  } catch(e) { toast(e.message,'error'); }
+}
+
+async function loadRede() {
+  try {
+    const r=await fetch('/api/rede');
+    const d=await r.json();
+    const base = location.origin+'/register?ref='+d.codigo_indicacao;
+    document.getElementById('link-url').textContent = base;
+    document.getElementById('btn-copy-codigo').onclick = () => { navigator.clipboard.writeText(d.codigo_indicacao); toast('Código copiado!','info'); };
+    const n1c = d.comissoes.find(c=>c.nivel===1);
+    const n2c = d.comissoes.find(c=>c.nivel===2);
+    document.getElementById('rede-stats').innerHTML = [
+      ['Indicados N1',d.nivel1.length,''],
+      ['Indicados N2',d.nivel2.length,''],
+      ['Comissão N1',n1c?(+n1c.total).toFixed(4)+' USDT':'0 USDT',''],
+      ['Comissão N2',n2c?(+n2c.total).toFixed(4)+' USDT':'0 USDT',''],
+    ].map(([l,v])=>`<div class="rs"><div class="rs-val">${v}</div><div class="rs-label">${l}</div></div>`).join('');
+    const tb=r=>r.map(u=>`<tr><td style="color:var(--gold)">${u.indicado}</td><td class="mono">${(+u.saldo_em_staking).toFixed(2)}</td><td class="mono">${(+u.total_depositado).toFixed(2)}</td>${u.total_ganho!==undefined?`<td class="mono" style="color:var(--green)">${(+u.total_ganho).toFixed(4)}</td>`:''}</tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text-f);padding:16px">Nenhum</td></tr>';
+    document.getElementById('n1t').innerHTML=tb(d.nivel1);
+    document.getElementById('n2t').innerHTML=d.nivel2.map(u=>`<tr><td style="color:var(--gold)">${u.indicado}</td><td class="mono">${(+u.saldo_em_staking).toFixed(2)}</td><td class="mono">${(+u.total_depositado).toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="3" style="text-align:center;color:var(--text-f);padding:16px">Nenhum</td></tr>';
+  } catch(e) {}
+}
+
+async function loadHMini() {
+  try {
+    const r=await fetch('/api/historico');
+    const d=await r.json();
+    document.getElementById('hm').innerHTML=d.slice(0,8).map(m=>`<tr>
+      <td><span class="badge ${bc(m.tipo)}">${m.tipo.replace('_',' ')}</span></td>
+      <td class="mono" style="color:${m.tipo.includes('SAQUE')?'var(--red)':'var(--green)'}">${m.tipo.includes('SAQUE')?'-':'+'}${(+m.valor).toFixed(4)}</td>
+      <td style="color:var(--text-d);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.descricao||'—'}</td>
+      <td style="color:var(--text-f);white-space:nowrap">${fd(m.data_evento)}</td></tr>`).join('')
+      ||'<tr><td colspan="4" style="text-align:center;color:var(--text-f);padding:16px">Nenhuma movimentação</td></tr>';
+  } catch(e) {}
+}
+
+async function loadHistorico() {
+  try {
+    const r=await fetch('/api/historico');
+    const d=await r.json();
+    document.getElementById('ht').innerHTML=d.map(m=>`<tr>
+      <td><span class="badge ${bc(m.tipo)}">${m.tipo.replace('_',' ')}</span></td>
+      <td class="mono" style="color:${m.tipo.includes('SAQUE')?'var(--red)':'var(--green)'}">${m.tipo.includes('SAQUE')?'-':'+'}${(+m.valor).toFixed(6)} USDT</td>
+      <td style="color:var(--text-d)">${m.descricao||'—'}</td>
+      <td style="color:var(--text-f);white-space:nowrap">${fd(m.data_evento)}</td></tr>`).join('')
+      ||'<tr><td colspan="4" style="text-align:center;color:var(--text-f);padding:16px">Nenhuma movimentação</td></tr>';
+  } catch(e) {}
+}
+
+async function loadAportes() {
+  try {
+    const r=await fetch('/api/meus_aportes');
+    const d=await r.json();
+    document.getElementById('at').innerHTML=d.map(a=>`<tr>
+      <td class="mono">${(+a.valor).toFixed(2)} USDT</td>
+      <td class="mono" style="max-width:100px;overflow:hidden;text-overflow:ellipsis" title="${a.txid}">${a.txid?a.txid.slice(0,12)+'...':'—'}</td>
+      <td style="text-transform:uppercase;color:var(--text-d)">${a.metodo}</td>
+      <td><span class="badge ${a.status==='aprovado'?'ba':a.status==='rejeitado'?'br':'bp'}">${a.status}</span></td>
+      <td style="color:var(--text-f);white-space:nowrap">${fd(a.data_aporte)}</td></tr>`).join('')
+      ||'<tr><td colspan="5" style="text-align:center;color:var(--text-f);padding:16px">Nenhum aporte</td></tr>';
+  } catch(e) {}
+}
+
+async function loadSaques() {
+  try {
+    const r=await fetch('/api/meus_saques');
+    const d=await r.json();
+    document.getElementById('st').innerHTML=d.map(s=>`<tr>
+      <td class="mono">${(+s.valor).toFixed(4)}</td>
+      <td class="mono">${s.carteira.slice(0,8)}...${s.carteira.slice(-4)}</td>
+      <td class="mono" style="color:var(--red)">${(+s.taxa).toFixed(4)}</td>
+      <td class="mono" style="color:var(--green)">${(+s.valor_liquido).toFixed(4)}</td>
+      <td><span class="badge ${s.status==='aprovado'?'ba':s.status==='rejeitado'?'br':'bp'}">${s.status}</span></td>
+      <td style="color:var(--text-f);white-space:nowrap">${fd(s.data_solicitacao)}</td></tr>`).join('')
+      ||'<tr><td colspan="6" style="text-align:center;color:var(--text-f);padding:16px">Nenhum saque</td></tr>';
+  } catch(e) {}
+}
+
+// ADMIN
+async function loadAdminDash() {
+  try {
+    const r=await fetch('/api/admin/dashboard');
+    const d=await r.json();
+    document.getElementById('astats').innerHTML=[
+      ['Usuários',d.total_usuarios],['Em Staking',d.total_em_staking.toFixed(2)+' USDT'],
+      ['Disponível',d.total_disponivel.toFixed(2)+' USDT'],['Aportes Pend.',d.aportes_pendentes],
+      ['Saques Pend.',d.saques_pendentes],['Rend. Pagos',d.total_rendimentos_pagos.toFixed(2)+' USDT'],
+      ['Comissões',d.total_comissoes.toFixed(2)+' USDT'],['Taxa Diária',d.taxa_diaria_pct+'%'],
+    ].map(([l,v])=>`<div class="as"><div class="as-val">${v}</div><div class="as-label">${l}</div></div>`).join('');
+    const pend=d.aportes_pendentes+d.saques_pendentes;
+    const b=document.getElementById('admin-badge');
+    b.textContent=pend; b.style.display=pend>0?'inline':'none';
+    loadAdminAportes(); loadAdminSaques(); loadAdminUsers(); loadAdminCfg();
+  } catch(e) {}
+}
+
+async function loadAdminAportes() {
+  try {
+    const r=await fetch('/api/admin/aportes_pendentes');
+    const d=await r.json();
+    document.getElementById('aa').innerHTML=d.map(a=>`<tr>
+      <td class="mono">#${a.id}</td><td style="color:var(--gold)">${a.usuario}</td>
+      <td class="mono">${(+a.valor).toFixed(2)} USDT</td>
+      <td class="mono" style="max-width:100px;overflow:hidden;text-overflow:ellipsis" title="${a.txid}">${a.txid?a.txid.slice(0,14)+'...':'—'}</td>
+      <td style="color:var(--text-f);white-space:nowrap">${fd(a.data_aporte)}</td>
+      <td style="display:flex;gap:5px">
+        <button class="btn btn-g btn-sm" onclick="aprovarA(${a.id})">Aprovar</button>
+        <button class="btn btn-r btn-sm" onclick="rejeitarA(${a.id})">Rejeitar</button>
+      </td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-f);padding:16px">Nenhum pendente</td></tr>';
+  } catch(e) {}
+}
+
+async function loadAdminSaques() {
+  try {
+    const r=await fetch('/api/admin/saques_pendentes');
+    const d=await r.json();
+    document.getElementById('as').innerHTML=d.map(s=>`<tr>
+      <td class="mono">#${s.id}</td><td style="color:var(--gold)">${s.usuario}</td>
+      <td class="mono">${(+s.valor).toFixed(4)}</td>
+      <td class="mono">${s.carteira.slice(0,10)}...${s.carteira.slice(-4)}</td>
+      <td class="mono" style="color:var(--green)">${(+s.valor_liquido).toFixed(4)}</td>
+      <td style="color:var(--text-f);white-space:nowrap">${fd(s.data_solicitacao)}</td>
+      <td style="display:flex;gap:5px">
+        <button class="btn btn-g btn-sm" onclick="aprovarS(${s.id})">Aprovar</button>
+        <button class="btn btn-r btn-sm" onclick="rejeitarS(${s.id})">Rejeitar</button>
+      </td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text-f);padding:16px">Nenhum pendente</td></tr>';
+  } catch(e) {}
+}
+
+async function loadAdminUsers() {
+  try {
+    const r=await fetch('/api/admin/usuarios');
+    const d=await r.json();
+    document.getElementById('au').innerHTML=d.map(u=>`<tr>
+      <td style="color:var(--gold)">${u.username}</td>
+      <td style="color:var(--text-d)">${u.email||'—'}</td>
+      <td class="mono">${(+u.saldo_em_staking).toFixed(2)}</td>
+      <td class="mono">${(+u.saldo_disponivel).toFixed(4)}</td>
+      <td class="mono" style="color:var(--green)">${(+u.total_ganho).toFixed(4)}</td>
+      <td class="mono" style="color:var(--gold)">${(+u.total_comissao).toFixed(4)}</td>
+      <td style="color:var(--text-d)">${u.referido_por||'—'}</td>
+      <td style="color:var(--text-f);white-space:nowrap">${fd(u.data_cadastro)}</td></tr>`).join('')
+      ||'<tr><td colspan="8" style="text-align:center;color:var(--text-f);padding:16px">Nenhum</td></tr>';
+  } catch(e) {}
+}
+
+async function loadAdminCfg() {
+  try {
+    const r=await fetch('/api/admin/config');
+    const d=await r.json();
+    document.getElementById('cfg-r').value=d.rendimento_diario||'';
+    document.getElementById('cfg-am').value=d.aporte_minimo||'';
+    document.getElementById('cfg-sm').value=d.saque_minimo||'';
+    document.getElementById('cfg-ts').value=d.taxa_saque||'';
+    document.getElementById('cfg-ld').value=d.lock_dias||'';
+    document.getElementById('cfg-cd').value=d.carteira_deposito||'';
+    document.getElementById('cfg-c1').value=d.comissao_n1||'';
+    document.getElementById('cfg-c2').value=d.comissao_n2||'';
+  } catch(e) {}
+}
+
+async function aprovarA(id) {
+  if(!confirm('Aprovar aporte?')) return;
+  try {
+    const r=await fetch(`/api/admin/aprovar_aporte/${id}`,{method:'POST'});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error);
+    toast('✓ '+d.message,'success'); loadAdminDash();
+  } catch(e) { toast(e.message,'error'); }
+}
+async function rejeitarA(id) {
+  if(!confirm('Rejeitar?')) return;
+  try {
+    const r=await fetch(`/api/admin/rejeitar_aporte/${id}`,{method:'POST'});
+    const d=await r.json(); toast(d.message,'info'); loadAdminDash();
+  } catch(e) { toast(e.message,'error'); }
+}
+async function aprovarS(id) {
+  const txid=prompt('TXID de saída (opcional):')||'';
+  try {
+    const r=await fetch(`/api/admin/aprovar_saque/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({txid})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error);
+    toast('✓ '+d.message,'success'); loadAdminDash();
+  } catch(e) { toast(e.message,'error'); }
+}
+async function rejeitarS(id) {
+  if(!confirm('Rejeitar e estornar?')) return;
+  try {
+    const r=await fetch(`/api/admin/rejeitar_saque/${id}`,{method:'POST'});
+    const d=await r.json(); toast(d.message,'info'); loadAdminDash();
+  } catch(e) { toast(e.message,'error'); }
+}
+async function salvarCfg() {
+  const body={
+    rendimento_diario:document.getElementById('cfg-r').value,
+    aporte_minimo:document.getElementById('cfg-am').value,
+    saque_minimo:document.getElementById('cfg-sm').value,
+    taxa_saque:document.getElementById('cfg-ts').value,
+    lock_dias:document.getElementById('cfg-ld').value,
+    carteira_deposito:document.getElementById('cfg-cd').value,
+    comissao_n1:document.getElementById('cfg-c1').value,
+    comissao_n2:document.getElementById('cfg-c2').value,
+  };
+  try {
+    const r=await fetch('/api/admin/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error);
+    toast('✓ '+d.message,'success'); loadMe();
+  } catch(e) { toast(e.message,'error'); }
+}
+async function creditarManual() {
+  const u=document.getElementById('cr-u').value.trim();
+  const v=parseFloat(document.getElementById('cr-v').value);
+  const t=document.getElementById('cr-t').value;
+  if(!u) return toast('Informe o usuário','error');
+  if(!v||v<=0) return toast('Valor inválido','error');
+  if(!confirm(`Creditar ${v} USDT em ${t} para ${u}?`)) return;
+  try {
+    const r=await fetch('/api/admin/creditar_manual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({usuario:u,valor:v,tipo:t})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error);
+    toast('✓ '+d.message,'success'); loadAdminDash();
+  } catch(e) { toast(e.message,'error'); }
+}
+async function loadAdminLogs() {
+  try {
+    const r=await fetch('/api/admin/logs');
+    const d=await r.json();
+    document.getElementById('al').innerHTML=d.map(l=>`<tr>
+      <td class="mono" style="color:var(--text-d)">${l.ip}</td>
+      <td><span class="badge ${l.evento.includes('FALHOU')||l.evento.includes('BLOQUEADO')||l.evento.includes('NEGADO')?'br':'bp'}">${l.evento}</span></td>
+      <td style="color:var(--gold)">${l.usuario||'—'}</td>
+      <td style="color:var(--text-d);max-width:150px;overflow:hidden;text-overflow:ellipsis">${l.detalhes||'—'}</td>
+      <td style="color:var(--text-f);white-space:nowrap">${fd(l.data_evento)}</td></tr>`).join('')
+      ||'<tr><td colspan="5" style="text-align:center;color:var(--text-f);padding:16px">Sem logs</td></tr>';
+  } catch(e) {}
+}
+
+function atab(t) {
+  ['aportes','saques','usuarios','config','creditar','logs'].forEach(x=>{
+    const el=document.getElementById('atab-'+x);
+    if(el) el.style.display=x===t?'block':'none';
+  });
+  if(t==='logs') loadAdminLogs();
+}
+
+// UTILS
+function bc(tipo) {
+  if(tipo==='APORTE') return 'ba';
+  if(tipo.includes('SAQUE')) return 'br';
+  return 'bp';
+}
+function fd(s) {
+  if(!s) return '—';
+  try { return new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+  catch { return s; }
+}
+function copiar(id) {
+  const t=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(t).then(()=>toast('Copiado!','info'));
+}
+function toast(msg,type='info') {
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show '+type;
+  if(toastT) clearTimeout(toastT);
+  toastT=setTimeout(()=>{el.className=''},4000);
+}
+function confirmLogout() { if(confirm('Sair da plataforma?')) location.href='/logout'; }
+function toggleSb() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
+function closeSb() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+
+function go(p) {
+  document.querySelectorAll('.content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(el=>el.classList.remove('active'));
+  const pg=document.getElementById('page-'+p); if(pg) pg.classList.add('active');
+  document.querySelectorAll('.ni').forEach(el=>{ if(el.getAttribute('onclick')?.includes("'"+p+"'")) el.classList.add('active'); });
+  document.getElementById('ptitle').textContent=PAGES[p]||p.toUpperCase();
+  closeSb();
+  if(p==='admin') loadAdminDash();
+  if(p==='historico') loadHistorico();
+  if(p==='staking') loadAportes();
+  if(p==='sacar') loadSaques();
+  if(p==='rede') loadRede();
+}
+
+init();
+</script>
+</body>
+</html>
