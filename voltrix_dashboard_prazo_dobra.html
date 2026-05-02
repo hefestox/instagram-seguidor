@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VOLTRIX — USDT Lending Protocol</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #d4af37;
+  --gold-dim: #b8920a;
+  --gold-bright: #f0d060;
+  --gold-faint: rgba(212,175,55,0.08);
+  --gold-border: rgba(212,175,55,0.18);
+  --bg: #050505;
+  --bg2: #0a0a07;
+  --bg3: #0f0f0a;
+  --text: #e0d5c0;
+  --text-dim: #8a7a4a;
+  --text-muted: #4a3a1a;
+  --green: #2ecc71;
+  --red: #e05252;
+  --blue: #4a9eff;
+  --orange: #f39c12;
+  --sidebar-w: 240px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--bg2);
+  border-right:1px solid var(--gold-border);display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:100;
+  transition:transform .3s ease
+}
+.sidebar-logo{padding:28px 24px 20px;border-bottom:1px solid var(--gold-border)}
+.logo-txt{font-family:'Bebas Neue';font-size:36px;letter-spacing:8px;
+  background:linear-gradient(135deg,var(--gold-dim),var(--gold),var(--gold-bright));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo-sub{font-size:8px;letter-spacing:4px;color:var(--text-dim);margin-top:2px}
+.sidebar-nav{flex:1;padding:16px 0;overflow-y:auto}
+.nav-section{font-size:8px;letter-spacing:3px;color:var(--text-muted);padding:12px 24px 6px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 24px;cursor:pointer;
+  color:var(--text-dim);font-size:13px;font-weight:500;letter-spacing:.3px;
+  border-left:2px solid transparent;transition:all .2s;position:relative}
+.nav-item:hover{color:var(--text);background:var(--gold-faint);border-left-color:var(--gold-border)}
+.nav-item.active{color:var(--gold);background:rgba(212,175,55,.1);border-left-color:var(--gold)}
+.nav-item .ico{font-size:16px;width:20px;text-align:center}
+.nav-badge{background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:auto;font-weight:700}
+.sidebar-footer{padding:16px 24px;border-top:1px solid var(--gold-border)}
+.sidebar-user{font-size:12px;color:var(--text-dim);margin-bottom:8px}
+.sidebar-user strong{color:var(--text);display:block;font-size:13px}
+.btn-logout{display:block;width:100%;padding:8px;text-align:center;background:transparent;
+  border:1px solid var(--gold-border);color:var(--text-dim);font-family:'Outfit';font-size:10px;
+  letter-spacing:3px;text-transform:uppercase;cursor:pointer;border-radius:2px;
+  transition:all .2s;text-decoration:none}
+.btn-logout:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:60px;background:var(--bg2);border-bottom:1px solid var(--gold-border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:50}
+.topbar-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:4px;color:var(--gold)}
+.topbar-info{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--text-dim)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:pulse 2s infinite;display:inline-block;margin-right:4px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.content{padding:32px;flex:1}
+
+/* ── PAGES ── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--bg3);border:1px solid var(--gold-border);border-radius:4px;
+  padding:20px 22px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold-border),transparent)}
+.stat-card:hover{border-color:rgba(212,175,55,.35)}
+.stat-label{font-size:9px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px}
+.stat-value{font-family:'JetBrains Mono';font-size:22px;font-weight:500;color:var(--gold)}
+.stat-sub{font-size:11px;color:var(--text-dim);margin-top:4px}
+.stat-icon{position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.15}
+
+/* ── PANELS ── */
+.panel{background:var(--bg3);border:1px solid var(--gold-border);border-radius:4px;margin-bottom:24px;overflow:hidden}
+.panel-head{padding:16px 22px;border-bottom:1px solid var(--gold-border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:10px;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase}
+.panel-body{padding:22px}
+
+/* ── PROJETO CARDS ── */
+.projetos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.projeto-card{background:var(--bg2);border:1px solid var(--gold-border);border-radius:6px;
+  overflow:hidden;transition:all .25s;cursor:pointer}
+.projeto-card:hover{border-color:rgba(212,175,55,.5);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.projeto-header{padding:20px;border-bottom:1px solid var(--gold-border)}
+.projeto-cat{font-size:9px;letter-spacing:3px;color:var(--gold-dim);text-transform:uppercase;margin-bottom:6px}
+.projeto-nome{font-family:'Bebas Neue';font-size:22px;letter-spacing:2px;color:var(--text);margin-bottom:6px}
+.projeto-desc{font-size:12px;color:var(--text-dim);line-height:1.5}
+.projeto-body{padding:20px}
+.projeto-stat-row{display:flex;justify-content:space-between;margin-bottom:12px}
+.projeto-stat{text-align:center}
+.projeto-stat-label{font-size:9px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px}
+.projeto-stat-val{font-family:'JetBrains Mono';font-size:16px;color:var(--gold)}
+.progresso-bar{background:rgba(212,175,55,.1);border-radius:2px;height:4px;margin-bottom:8px;overflow:hidden}
+.progresso-fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));
+  border-radius:2px;transition:width .5s ease}
+.progresso-txt{font-size:10px;color:var(--text-dim);display:flex;justify-content:space-between}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;
+  font-size:10px;font-weight:600;letter-spacing:.5px}
+.badge-green{background:rgba(46,204,113,.12);color:var(--green);border:1px solid rgba(46,204,113,.2)}
+.badge-gold{background:rgba(212,175,55,.12);color:var(--gold);border:1px solid rgba(212,175,55,.2)}
+.badge-red{background:rgba(224,82,82,.12);color:var(--red);border:1px solid rgba(224,82,82,.2)}
+.badge-orange{background:rgba(243,156,18,.12);color:var(--orange);border:1px solid rgba(243,156,18,.2)}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:16px}
+label.lbl{display:block;font-size:9px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin-bottom:7px}
+input.inp,select.inp,textarea.inp{width:100%;padding:11px 14px;background:rgba(212,175,55,.04);
+  border:1px solid var(--gold-border);border-radius:3px;color:var(--text);font-family:'Outfit';
+  font-size:13px;outline:none;transition:border-color .2s}
+input.inp:focus,select.inp:focus,textarea.inp:focus{border-color:rgba(212,175,55,.5)}
+select.inp option{background:var(--bg2)}
+textarea.inp{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border:none;
+  border-radius:3px;cursor:pointer;font-family:'Outfit';font-size:11px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--gold-dim),var(--gold));color:#050505}
+.btn-primary:hover{opacity:.85;transform:translateY(-1px)}
+.btn-outline{background:transparent;border:1px solid var(--gold-border);color:var(--text-dim)}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+.btn-green{background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.3);color:var(--green)}
+.btn-green:hover{background:rgba(46,204,113,.25)}
+.btn-red{background:rgba(224,82,82,.15);border:1px solid rgba(224,82,82,.3);color:var(--red)}
+.btn-red:hover{background:rgba(224,82,82,.25)}
+.btn-sm{padding:6px 14px;font-size:9px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:8px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;
+  padding:10px 14px;text-align:left;border-bottom:1px solid var(--gold-border)}
+.tbl td{padding:12px 14px;border-bottom:1px solid rgba(212,175,55,.06);color:var(--text-dim)}
+.tbl tr:hover td{background:var(--gold-faint);color:var(--text)}
+.tbl .mono{font-family:'JetBrains Mono';font-size:11px}
+
+/* ── ALERT / TOAST ── */
+#toast{position:fixed;bottom:28px;right:28px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+.toast-item{padding:13px 20px;border-radius:4px;font-size:13px;font-weight:500;
+  animation:slideIn .3s ease;max-width:340px;border-left:3px solid}
+.toast-ok{background:#0a1a0f;border-color:var(--green);color:var(--green)}
+.toast-err{background:#1a0a0a;border-color:var(--red);color:var(--red)}
+.toast-info{background:#0a0f1a;border-color:var(--blue);color:var(--blue)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--gold-border);border-radius:6px;
+  width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+  transform:scale(.95);transition:transform .2s}
+.modal-overlay.open .modal{transform:scale(1)}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--gold-border);
+  display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:3px;color:var(--gold)}
+.modal-close{background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;padding:4px 8px}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:24px}
+
+/* ── APORTE MEU CARD ── */
+.meu-aporte{background:var(--bg2);border:1px solid var(--gold-border);border-radius:6px;
+  padding:18px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.meu-aporte-info{flex:1}
+.meu-aporte-nome{font-weight:600;color:var(--text);margin-bottom:4px}
+.meu-aporte-val{font-family:'JetBrains Mono';font-size:18px;color:var(--gold)}
+.meu-aporte-rend{font-size:11px;color:var(--green);margin-top:4px}
+
+/* ── REDE ── */
+.rede-card{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:var(--bg2);border:1px solid var(--gold-border);
+  border-radius:3px;margin-bottom:8px;font-size:13px}
+.rede-user{color:var(--text);font-weight:500}
+.rede-val{font-family:'JetBrains Mono';font-size:12px;color:var(--text-dim)}
+
+/* ── COPY ── */
+.copy-box{display:flex;align-items:center;gap:8px;background:var(--gold-faint);
+  border:1px solid var(--gold-border);border-radius:3px;padding:10px 14px;
+  font-family:'JetBrains Mono';font-size:12px;color:var(--text-dim);cursor:pointer;
+  transition:all .2s;word-break:break-all}
+.copy-box:hover{border-color:var(--gold);color:var(--text)}
+
+/* ── PENDENTE INDICATOR ── */
+.rend-pulse{color:var(--green);font-family:'JetBrains Mono';font-size:13px;
+  animation:glow 2s ease-in-out infinite}
+@keyframes glow{0%,100%{text-shadow:0 0 4px rgba(46,204,113,.4)}50%{text-shadow:0 0 12px rgba(46,204,113,.8)}}
+
+/* ── ADMIN TABS ── */
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--gold-border);padding-bottom:0}
+.tab{padding:10px 20px;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:all .2s}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ── HAMBURGER ── */
+.ham{display:none;background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;padding:4px}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
+
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .ham{display:block}
+  .mob-overlay.open{display:block}
+  .content{padding:18px}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .form-row{grid-template-columns:1fr}
+  .projetos-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){.stats-grid{grid-template-columns:1fr}}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px;color:var(--text-muted)}
+.empty-icon{font-size:40px;margin-bottom:12px}
+.empty-txt{font-size:14px}
+
+/* ── DEPOSIT INFO ── */
+.deposit-box{background:rgba(212,175,55,.05);border:1px solid var(--gold-border);border-radius:4px;padding:20px}
+.deposit-label{font-size:9px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px}
+.deposit-addr{font-family:'JetBrains Mono';font-size:12px;color:var(--gold);word-break:break-all;line-height:1.6}
+.deposit-warn{font-size:11px;color:var(--orange);margin-top:10px;line-height:1.5}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:rgba(212,175,55,.2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-txt">VOLTRIX</div>
+    <div class="logo-sub">USDT Lending Protocol</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" data-page="dashboard">
+      <span class="ico">◈</span> Dashboard
+    </div>
+    <div class="nav-item" data-page="projetos">
+      <span class="ico">⬡</span> Projetos
+    </div>
+    <div class="nav-item" data-page="meus-aportes">
+      <span class="ico">◇</span> Meus Aportes
+    </div>
+    <div class="nav-section">Financeiro</div>
+    <div class="nav-item" data-page="depositar">
+      <span class="ico">↓</span> Depositar
+    </div>
+    <div class="nav-item" data-page="sacar">
+      <span class="ico">↑</span> Sacar
+    </div>
+    <div class="nav-item" data-page="historico">
+      <span class="ico">≡</span> Histórico
+    </div>
+    <div class="nav-section">Comunidade</div>
+    <div class="nav-item" data-page="rede">
+      <span class="ico">⬡</span> Minha Rede
+    </div>
+    <div class="nav-section" id="admin-section" style="display:none">Admin</div>
+    <div class="nav-item" data-page="admin" id="admin-nav" style="display:none">
+      <span class="ico">⚙</span> Painel Admin
+      <span class="nav-badge" id="admin-badge" style="display:none">!</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      Logado como<strong id="nav-username">—</strong>
+    </div>
+    <a href="/logout" class="btn-logout">⎋ Sair</a>
+  </div>
+</aside>
+
+<div class="mob-overlay" id="mob-overlay"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="ham" id="ham">☰</button>
+      <div class="topbar-title" id="page-title">DASHBOARD</div>
+    </div>
+    <div class="topbar-info">
+      <span><span class="live-dot"></span> Online</span>
+      <span id="topbar-saldo" style="color:var(--gold);font-family:'JetBrains Mono';font-size:13px">— USDT</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Saldo Disponível</div>
+          <div class="stat-value" id="sd-disponivel">—</div>
+          <div class="stat-sub">USDT livre para saque</div>
+          <div class="stat-icon">◈</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Em Projetos</div>
+          <div class="stat-value" id="sd-staking">—</div>
+          <div class="stat-sub">USDT alocado</div>
+          <div class="stat-icon">⬡</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Rendimento Pendente</div>
+          <div class="stat-value rend-pulse" id="sd-pendente">—</div>
+          <div class="stat-sub">Pronto para coletar</div>
+          <button class="btn btn-green btn-sm" id="btn-coletar-dashboard" onclick="coletarTudoRendimento(this)" style="margin-top:12px">↓ Coletar rendimento</button>
+          <div class="stat-icon">✦</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Ganho</div>
+          <div class="stat-value" id="sd-ganho" style="color:var(--green)">—</div>
+          <div class="stat-sub">Histórico de rendimentos</div>
+          <div class="stat-icon">↑</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Depositado</div>
+          <div class="stat-value" id="sd-depositado">—</div>
+          <div class="stat-sub">USDT aportado</div>
+          <div class="stat-icon">↓</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Comissões Recebidas</div>
+          <div class="stat-value" id="sd-comissao" style="color:var(--blue)">—</div>
+          <div class="stat-sub">Via indicações</div>
+          <div class="stat-icon">◎</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Últimas Movimentações</div>
+          </div>
+          <div class="panel-body" id="dash-historico">
+            <div class="empty"><div class="empty-icon">≡</div><div class="empty-txt">Nenhuma movimentação</div></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Seu Link de Indicação</div>
+          </div>
+          <div class="panel-body">
+            <div class="stat-label" style="margin-bottom:10px">Compartilhe e ganhe comissões em 2 níveis</div>
+            <div class="copy-box" id="ref-link-box" onclick="copyRef()">
+              <span style="flex:1" id="ref-link-txt">—</span>
+              <span>⧉</span>
+            </div>
+            <div style="display:flex;gap:16px;margin-top:16px">
+              <div style="flex:1;text-align:center;padding:12px;background:var(--gold-faint);border:1px solid var(--gold-border);border-radius:3px">
+                <div style="font-size:9px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Nível 1</div>
+                <div style="font-family:'JetBrains Mono';font-size:20px;color:var(--gold)" id="rede-n1-count">0</div>
+                <div style="font-size:10px;color:var(--text-dim)" id="comissao-n1-pct">20%</div>
+              </div>
+              <div style="flex:1;text-align:center;padding:12px;background:var(--gold-faint);border:1px solid var(--gold-border);border-radius:3px">
+                <div style="font-size:9px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Nível 2</div>
+                <div style="font-family:'JetBrains Mono';font-size:20px;color:var(--gold)" id="rede-n2-count">0</div>
+                <div style="font-size:10px;color:var(--text-dim)" id="comissao-n2-pct">10%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PROJETOS ══ -->
+    <div class="page" id="page-projetos">
+      <div class="panel" style="margin-bottom:24px">
+        <div class="panel-head">
+          <div class="panel-title">Projetos Disponíveis</div>
+          <div style="font-size:11px;color:var(--text-dim)">Aloque USDT e receba rendimentos até dobrar o aporte</div>
+        </div>
+        <div class="panel-body">
+          <div class="projetos-grid" id="projetos-list">
+            <div class="empty"><div class="empty-icon">⬡</div><div class="empty-txt">Carregando projetos...</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MEUS APORTES ══ -->
+    <div class="page" id="page-meus-aportes">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Meus Aportes Ativos</div>
+          <button class="btn btn-primary btn-sm" onclick="loadMeusAportes()">↻ Atualizar</button>
+        </div>
+        <div class="panel-body" id="meus-aportes-list">
+          <div class="empty"><div class="empty-icon">◇</div><div class="empty-txt">Nenhum aporte registrado</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DEPOSITAR ══ -->
+    <div class="page" id="page-depositar">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:900px">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Endereço de Depósito</div></div>
+          <div class="panel-body">
+            <div class="deposit-box">
+              <div class="deposit-label">Rede: ERC-20 (Ethereum) — USDT</div>
+              <div class="deposit-addr" id="dep-carteira">—</div>
+              <div class="deposit-warn">⚠ Envie somente USDT na rede ERC-20. Outros tokens ou redes resultarão em perda irreversível.</div>
+            </div>
+            <button class="btn btn-outline" style="width:100%;margin-top:14px;justify-content:center" onclick="copyCarteira()">
+              ⧉ Copiar Endereço
+            </button>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:16px;line-height:1.6">
+              Após a transferência, registre seu aporte abaixo com o <strong style="color:var(--text)">TXID da transação</strong>.
+              O aporte será aprovado pelo administrador e você poderá alocar em projetos.
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Registrar Aporte em Projeto</div></div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label class="lbl">Projeto</label>
+              <select class="inp" id="dep-projeto">
+                <option value="">Selecione um projeto...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="lbl">Valor (USDT)</label>
+              <input class="inp" type="number" id="dep-valor" placeholder="Ex: 100" min="10" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="lbl">TXID da Transação</label>
+              <input class="inp" type="text" id="dep-txid" placeholder="0x... (hash da tx na blockchain)">
+            </div>
+            <div style="font-size:10px;color:var(--text-dim);margin-bottom:14px">
+              Mínimo: <span id="dep-minimo" style="color:var(--gold)">—</span> USDT
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="registrarAporte()">
+              ↓ Registrar Aporte
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SACAR ══ -->
+    <div class="page" id="page-sacar">
+      <div style="max-width:480px">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Solicitar Saque</div></div>
+          <div class="panel-body">
+            <div style="background:var(--gold-faint);border:1px solid var(--gold-border);border-radius:3px;padding:14px;margin-bottom:20px">
+              <div style="font-size:9px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px">Disponível para Saque</div>
+              <div class="stat-value" id="saque-disponivel">—</div>
+            </div>
+            <div class="form-group">
+              <label class="lbl">Valor a Sacar (USDT)</label>
+              <input class="inp" type="number" id="saque-valor" placeholder="Ex: 50" min="10" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="lbl">Carteira ERC-20 de Destino</label>
+              <input class="inp" type="text" id="saque-carteira" placeholder="0x...">
+            </div>
+            <div style="font-size:11px;color:var(--text-dim);margin-bottom:16px;line-height:1.6">
+              Taxa de saque: <span id="saque-taxa-pct" style="color:var(--orange)">—</span>% •
+              Mínimo: <span id="saque-minimo" style="color:var(--gold)">—</span> USDT
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="solicitarSaque()">
+              ↑ Solicitar Saque
+            </button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Histórico de Saques</div></div>
+          <div class="panel-body" id="saques-list">
+            <div class="empty"><div class="empty-icon">↑</div><div class="empty-txt">Nenhum saque</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HISTÓRICO ══ -->
+    <div class="page" id="page-historico">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Histórico de Movimentações</div>
+          <button class="btn btn-outline btn-sm" onclick="loadHistorico()">↻</button>
+        </div>
+        <div class="panel-body" id="historico-list">
+          <div class="empty"><div class="empty-icon">≡</div><div class="empty-txt">Carregando...</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ REDE ══ -->
+    <div class="page" id="page-rede">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Indicados Nível 1 — <span id="comissao-n1-pct2" style="color:var(--gold)">20%</span></div></div>
+            <div class="panel-body" id="rede-n1-list">
+              <div class="empty"><div class="empty-icon">⬡</div><div class="empty-txt">Nenhum indicado</div></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Indicados Nível 2 — <span id="comissao-n2-pct2" style="color:var(--gold)">10%</span></div></div>
+            <div class="panel-body" id="rede-n2-list">
+              <div class="empty"><div class="empty-icon">⬡</div><div class="empty-txt">Nenhum indicado</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:20px">
+        <div class="panel-head"><div class="panel-title">Seu Link de Indicação</div></div>
+        <div class="panel-body">
+          <div class="copy-box" id="ref-link-box2" onclick="copyRef()">
+            <span style="flex:1" id="ref-link-txt2">—</span>
+            <span>⧉ Copiar</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ADMIN ══ -->
+    <div class="page" id="page-admin">
+      <div class="tabs">
+        <div class="tab active" data-tab="admin-visao">Visão Geral</div>
+        <div class="tab" data-tab="admin-projetos">Projetos</div>
+        <div class="tab" data-tab="admin-aportes">Aportes <span class="nav-badge" id="tab-aportes-badge" style="display:none"></span></div>
+        <div class="tab" data-tab="admin-saques">Saques <span class="nav-badge" id="tab-saques-badge" style="display:none"></span></div>
+        <div class="tab" data-tab="admin-usuarios">Usuários</div>
+        <div class="tab" data-tab="admin-config">Config</div>
+        <div class="tab" data-tab="admin-credito">Crédito</div>
+      </div>
+
+      <!-- Visão Geral -->
+      <div class="tab-pane active" id="admin-visao">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Usuários</div><div class="stat-value" id="adm-usuarios">—</div><div class="stat-icon">◎</div></div>
+          <div class="stat-card"><div class="stat-label">Em Projetos</div><div class="stat-value" id="adm-staking">—</div><div class="stat-icon">⬡</div></div>
+          <div class="stat-card"><div class="stat-label">Saldo Disponível</div><div class="stat-value" id="adm-disponivel">—</div><div class="stat-icon">◈</div></div>
+          <div class="stat-card"><div class="stat-label">Projetos Ativos</div><div class="stat-value" id="adm-projetos-ativos">—</div><div class="stat-icon">✦</div></div>
+          <div class="stat-card"><div class="stat-label">Aportes Pendentes</div><div class="stat-value" id="adm-aportes-p" style="color:var(--orange)">—</div><div class="stat-icon">↓</div></div>
+          <div class="stat-card"><div class="stat-label">Saques Pendentes</div><div class="stat-value" id="adm-saques-p" style="color:var(--red)">—</div><div class="stat-icon">↑</div></div>
+          <div class="stat-card"><div class="stat-label">Rendimentos Pagos</div><div class="stat-value" id="adm-rendimentos" style="color:var(--green)">—</div><div class="stat-icon">↑</div></div>
+          <div class="stat-card"><div class="stat-label">Total Comissões</div><div class="stat-value" id="adm-comissoes" style="color:var(--blue)">—</div><div class="stat-icon">◇</div></div>
+        </div>
+      </div>
+
+      <!-- Projetos -->
+      <div class="tab-pane" id="admin-projetos">
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-head"><div class="panel-title">Criar Novo Projeto</div></div>
+          <div class="panel-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="lbl">Nome do Projeto</label>
+                <input class="inp" id="np-nome" placeholder="Ex: Crypto Mining Pool #1">
+              </div>
+              <div class="form-group">
+                <label class="lbl">Categoria</label>
+                <select class="inp" id="np-categoria">
+                  <option value="crypto">Crypto Mining</option>
+                  <option value="servidor">Servidores/Infra</option>
+                  <option value="defi">DeFi Protocol</option>
+                  <option value="staking">PoS Staking</option>
+                  <option value="arbitrage">Arbitragem</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="lbl">Descrição</label>
+              <textarea class="inp" id="np-descricao" placeholder="Descreva o projeto e sua estratégia..."></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="lbl">Meta de Captação (USDT)</label>
+                <input class="inp" type="number" id="np-meta" placeholder="Ex: 10000" min="100">
+              </div>
+              <div class="form-group">
+                <label class="lbl">Rendimento Diário (ex: 0.02 = 2%)</label>
+                <input class="inp" type="number" id="np-rendimento" placeholder="0.02" step="0.001" min="0.001" max="0.10">
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="criarProjeto()">+ Criar Projeto</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Todos os Projetos</div>
+            <button class="btn btn-outline btn-sm" onclick="loadAdminProjetos()">↻</button>
+          </div>
+          <div class="panel-body" id="admin-projetos-list">
+            <div class="empty"><div class="empty-icon">⬡</div><div class="empty-txt">Nenhum projeto</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aportes pendentes -->
+      <div class="tab-pane" id="admin-aportes">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Aportes Pendentes</div>
+            <button class="btn btn-outline btn-sm" onclick="loadAdminAportes()">↻</button>
+          </div>
+          <div class="panel-body" id="admin-aportes-list">
+            <div class="empty"><div class="empty-icon">↓</div><div class="empty-txt">Nenhum pendente</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Saques pendentes -->
+      <div class="tab-pane" id="admin-saques">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Saques Pendentes</div>
+            <button class="btn btn-outline btn-sm" onclick="loadAdminSaques()">↻</button>
+          </div>
+          <div class="panel-body" id="admin-saques-list">
+            <div class="empty"><div class="empty-icon">↑</div><div class="empty-txt">Nenhum pendente</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Usuários -->
+      <div class="tab-pane" id="admin-usuarios">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Usuários Cadastrados</div>
+            <button class="btn btn-outline btn-sm" onclick="loadAdminUsuarios()">↻</button>
+          </div>
+          <div style="overflow-x:auto" id="admin-usuarios-wrap">
+            <div class="empty" style="padding:30px"><div class="empty-icon">◎</div><div class="empty-txt">Carregando...</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config -->
+      <div class="tab-pane" id="admin-config">
+        <div class="panel" style="max-width:500px">
+          <div class="panel-head"><div class="panel-title">Configurações da Plataforma</div></div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label class="lbl">Aporte Mínimo (USDT)</label>
+              <input class="inp" type="number" id="cfg-aporte-min" step="1">
+            </div>
+            <div class="form-group">
+              <label class="lbl">Saque Mínimo (USDT)</label>
+              <input class="inp" type="number" id="cfg-saque-min" step="1">
+            </div>
+            <div class="form-group">
+              <label class="lbl">Taxa de Saque (ex: 0.05 = 5%)</label>
+              <input class="inp" type="number" id="cfg-taxa-saque" step="0.01">
+            </div>
+            <div class="form-group">
+              <label class="lbl">Carteira de Depósito ERC-20</label>
+              <input class="inp" type="text" id="cfg-carteira">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="lbl">Comissão N1 (ex: 0.20 = 20%)</label>
+                <input class="inp" type="number" id="cfg-comissao-n1" step="0.01">
+              </div>
+              <div class="form-group">
+                <label class="lbl">Comissão N2 (ex: 0.10 = 10%)</label>
+                <input class="inp" type="number" id="cfg-comissao-n2" step="0.01">
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="salvarConfig()">✓ Salvar Configurações</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Crédito Manual -->
+      <div class="tab-pane" id="admin-credito">
+        <div class="panel" style="max-width:400px">
+          <div class="panel-head"><div class="panel-title">Crédito Manual</div></div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label class="lbl">Usuário</label>
+              <input class="inp" type="text" id="cred-usuario" placeholder="username">
+            </div>
+            <div class="form-group">
+              <label class="lbl">Valor (USDT)</label>
+              <input class="inp" type="number" id="cred-valor" step="0.01" min="0.01">
+            </div>
+            <button class="btn btn-primary" onclick="creditarManual()">+ Creditar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- MODAL APORTE EM PROJETO -->
+<div class="modal-overlay" id="modal-aporte">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modal-projeto-nome">PROJETO</div>
+      <button class="modal-close" onclick="closeModal('modal-aporte')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:18px;padding:14px;background:var(--gold-faint);border:1px solid var(--gold-border);border-radius:3px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:11px;color:var(--text-dim)">Rendimento diário</span>
+          <span style="font-family:'JetBrains Mono';color:var(--green)" id="modal-rendimento">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:11px;color:var(--text-dim)">Categoria</span>
+          <span style="color:var(--text-dim)" id="modal-categoria">—</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="lbl">Valor do Aporte (USDT)</label>
+        <input class="inp" type="number" id="modal-valor" placeholder="Mínimo 10 USDT" min="10" step="0.01">
+      </div>
+      <div class="form-group">
+        <label class="lbl">TXID da transação blockchain</label>
+        <input class="inp" type="text" id="modal-txid" placeholder="0x...">
+      </div>
+      <div class="deposit-box" style="margin-bottom:16px">
+        <div class="deposit-label">Enviar USDT ERC-20 para</div>
+        <div class="deposit-addr" id="modal-carteira">—</div>
+        <div class="deposit-warn">Após enviar, cole o hash da transação acima</div>
+      </div>
+      <input type="hidden" id="modal-projeto-id">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="confirmarAporte()">
+        ↓ Confirmar Aporte
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── STATE ──
+let meData = {};
+let projectosCache = [];
+
+// ── TOAST ──
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  const d = document.createElement('div');
+  d.className = `toast-item toast-${type}`;
+  d.textContent = msg;
+  t.appendChild(d);
+  setTimeout(() => d.remove(), 4000);
+}
+
+// ── NAV ──
+const pages = {
+  'dashboard': 'DASHBOARD',
+  'projetos': 'PROJETOS',
+  'meus-aportes': 'MEUS APORTES',
+  'depositar': 'DEPOSITAR',
+  'sacar': 'SACAR',
+  'historico': 'HISTÓRICO',
+  'rede': 'MINHA REDE',
+  'admin': 'ADMIN'
+};
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const pg = item.dataset.page;
+    navigateTo(pg);
+    closeSidebar();
+  });
+});
+
+function navigateTo(pg) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === pg));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === `page-${pg}`));
+  document.getElementById('page-title').textContent = pages[pg] || pg.toUpperCase();
+  if (pg === 'projetos') loadProjetos();
+  if (pg === 'meus-aportes') loadMeusAportes();
+  if (pg === 'historico') loadHistorico();
+  if (pg === 'rede') loadRede();
+  if (pg === 'sacar') loadSaques();
+  if (pg === 'admin') {
+    loadAdminDash();
+    loadAdminAportes();
+    loadAdminSaques();
+    loadAdminProjetos();
+    loadAdminUsuarios();
+    loadAdminConfig();
+  }
+}
+
+// Admin tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const t = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === t));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === t));
+  });
+});
+
+// Sidebar mobile
+document.getElementById('ham').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('mob-overlay').classList.toggle('open');
+});
+document.getElementById('mob-overlay').addEventListener('click', closeSidebar);
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mob-overlay').classList.remove('open');
+}
+
+// ── API HELPERS ──
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+  return d;
+}
+
+// ── LOAD ME ──
+async function loadMe() {
+  try {
+    meData = await api('/api/me');
+    document.getElementById('nav-username').textContent = meData.user;
+    const disp = meData.saldo_disponivel.toFixed(4);
+    document.getElementById('topbar-saldo').textContent = `${disp} USDT`;
+    document.getElementById('sd-disponivel').textContent = `${disp} USDT`;
+    document.getElementById('sd-staking').textContent = `${meData.saldo_em_projetos.toFixed(4)} USDT`;
+    document.getElementById('sd-pendente').textContent = `${meData.rendimento_pendente.toFixed(6)} USDT`;
+    document.getElementById('sd-ganho').textContent = `${meData.total_ganho.toFixed(4)} USDT`;
+    document.getElementById('sd-depositado').textContent = `${meData.total_depositado.toFixed(4)} USDT`;
+    document.getElementById('sd-comissao').textContent = `${meData.total_comissao.toFixed(4)} USDT`;
+    document.getElementById('rede-n1-count').textContent = meData.total_indicados_n1;
+    document.getElementById('rede-n2-count').textContent = meData.total_indicados_n2;
+    document.getElementById('comissao-n1-pct').textContent = `${meData.comissao_n1_pct}% por aporte`;
+    document.getElementById('comissao-n2-pct').textContent = `${meData.comissao_n2_pct}% por aporte`;
+    document.getElementById('comissao-n1-pct2').textContent = `${meData.comissao_n1_pct}%`;
+    document.getElementById('comissao-n2-pct2').textContent = `${meData.comissao_n2_pct}%`;
+    document.getElementById('saque-disponivel').textContent = `${disp} USDT`;
+    document.getElementById('saque-taxa-pct').textContent = meData.taxa_saque_pct;
+    document.getElementById('saque-minimo').textContent = meData.saque_minimo;
+    document.getElementById('dep-minimo').textContent = meData.aporte_minimo;
+    const dep = meData.carteira_deposito;
+    document.getElementById('dep-carteira').textContent = dep;
+    document.getElementById('modal-carteira').textContent = dep;
+
+    const refLink = `${location.origin}/register?ref=${meData.codigo_indicacao}`;
+    document.getElementById('ref-link-txt').textContent = refLink;
+    document.getElementById('ref-link-txt2').textContent = refLink;
+
+    if (meData.is_admin) {
+      document.getElementById('admin-section').style.display = '';
+      document.getElementById('admin-nav').style.display = '';
+    }
+
+    // pre-fill saque carteira
+    if (meData.carteira) document.getElementById('saque-carteira').value = meData.carteira;
+
+    loadDashHistorico();
+  } catch(e) { toast('Erro ao carregar dados: ' + e.message, 'err'); }
+}
+
+async function loadDashHistorico() {
+  try {
+    const rows = await api('/api/historico');
+    const el = document.getElementById('dash-historico');
+    if (!rows.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">≡</div><div class="empty-txt">Nenhuma movimentação</div></div>'; return; }
+    el.innerHTML = rows.slice(0,8).map(r => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(212,175,55,.06)">
+        <div>
+          <div style="font-size:12px;color:var(--text)">${tipoLabel(r.tipo)}</div>
+          <div style="font-size:10px;color:var(--text-dim)">${r.descricao||''} • ${fmtDate(r.data_evento)}</div>
+        </div>
+        <div style="font-family:'JetBrains Mono';font-size:13px;color:${r.tipo.includes('SAQUE')?'var(--red)':'var(--green)'}">
+          ${r.tipo.includes('SAQUE')?'-':'+'} ${r.valor.toFixed(4)}
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+// ── PROJETOS ──
+async function loadProjetos() {
+  try {
+    const projs = await api('/api/projetos');
+    projectosCache = projs;
+    const el = document.getElementById('projetos-list');
+    const sel = document.getElementById('dep-projeto');
+
+    // update select
+    sel.innerHTML = '<option value="">Selecione um projeto...</option>';
+    projs.forEach(p => {
+      const o = document.createElement('option');
+      o.value = p.id; o.textContent = p.nome;
+      sel.appendChild(o);
+    });
+
+    if (!projs.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">⬡</div><div class="empty-txt">Nenhum projeto ativo no momento</div></div>';
+      return;
+    }
+    el.innerHTML = projs.map(p => `
+      <div class="projeto-card" onclick="abrirModalAporte(${p.id})">
+        <div class="projeto-header">
+          <div class="projeto-cat">${catLabel(p.categoria)}</div>
+          <div class="projeto-nome">${esc(p.nome)}</div>
+          <div class="projeto-desc">${esc(p.descricao||'')}</div>
+        </div>
+        <div class="projeto-body">
+          <div class="projeto-stat-row">
+            <div class="projeto-stat">
+              <div class="projeto-stat-label">Rendimento/dia</div>
+              <div class="projeto-stat-val" style="color:var(--green)">${(p.rendimento_diario*100).toFixed(2)}%</div>
+            </div>
+            <div class="projeto-stat">
+              <div class="projeto-stat-label">Meta</div>
+              <div class="projeto-stat-val">${fmtUSDT(p.meta_usdt)}</div>
+            </div>
+            <div class="projeto-stat">
+              <div class="projeto-stat-label">Captado</div>
+              <div class="projeto-stat-val">${fmtUSDT(p.captado_real||0)}</div>
+            </div>
+          </div>
+          <div class="progresso-bar"><div class="progresso-fill" style="width:${Math.min(p.progresso_pct,100)}%"></div></div>
+          <div class="progresso-txt"><span>${p.progresso_pct}% captado</span><span>${fmtUSDT(p.captado_real||0)} / ${fmtUSDT(p.meta_usdt)}</span></div>
+          <div style="margin-top:14px;text-align:center">
+            <span class="badge badge-green">▶ Aportar agora</span>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(e) { toast('Erro ao carregar projetos: ' + e.message, 'err'); }
+}
+
+function abrirModalAporte(id) {
+  const p = projectosCache.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-projeto-id').value = id;
+  document.getElementById('modal-projeto-nome').textContent = p.nome;
+  document.getElementById('modal-rendimento').textContent = `${(p.rendimento_diario*100).toFixed(2)}% ao dia`;
+  document.getElementById('modal-categoria').textContent = catLabel(p.categoria);
+  document.getElementById('modal-valor').value = '';
+  document.getElementById('modal-txid').value = '';
+  document.getElementById('modal-carteira').textContent = meData.carteira_deposito || '—';
+  openModal('modal-aporte');
+}
+
+async function confirmarAporte() {
+  const id = document.getElementById('modal-projeto-id').value;
+  const valor = parseFloat(document.getElementById('modal-valor').value);
+  const txid = document.getElementById('modal-txid').value.trim();
+  if (!valor || valor < 10) return toast('Valor mínimo: 10 USDT', 'err');
+  if (!txid) return toast('Informe o TXID', 'err');
+  try {
+    const r = await api('/api/projetos/aportar', 'POST', { projeto_id: parseInt(id), valor, txid });
+    toast(r.message, 'ok');
+    closeModal('modal-aporte');
+    loadMe();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function registrarAporte() {
+  const pid = document.getElementById('dep-projeto').value;
+  const valor = parseFloat(document.getElementById('dep-valor').value);
+  const txid = document.getElementById('dep-txid').value.trim();
+  if (!pid) return toast('Selecione um projeto', 'err');
+  if (!valor || valor < 10) return toast('Valor mínimo: 10 USDT', 'err');
+  if (!txid) return toast('Informe o TXID', 'err');
+  try {
+    const r = await api('/api/projetos/aportar', 'POST', { projeto_id: parseInt(pid), valor, txid });
+    toast(r.message, 'ok');
+    document.getElementById('dep-valor').value = '';
+    document.getElementById('dep-txid').value = '';
+    loadMe();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+// ── MEUS APORTES ──
+async function loadMeusAportes() {
+  try {
+    const rows = await api('/api/projetos/meus_aportes');
+    const el = document.getElementById('meus-aportes-list');
+    if (!rows.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">◇</div><div class="empty-txt">Nenhum aporte. Explore os projetos!</div></div>';
+      return;
+    }
+    el.innerHTML = rows.map(a => `
+      <div class="meu-aporte">
+        <div class="meu-aporte-info">
+          <div class="meu-aporte-nome">${esc(a.projeto_nome||'Projeto')} <span class="badge badge-${statusBadge(a.status)}">${a.status}</span></div>
+          <div class="meu-aporte-val">${a.valor.toFixed(4)} USDT</div>
+          ${a.rendimento_diario ? `<div style="font-size:11px;color:var(--text-dim)">${(a.rendimento_diario*100).toFixed(2)}%/dia • prazo até dobrar</div>` : ''}
+          ${a.lucro_coletado !== undefined ? `<div style="font-size:11px;color:var(--text-dim);margin-top:3px">Dobra: ${(Number(a.lucro_coletado||0)).toFixed(6)} / ${(Number(a.lucro_limite||a.valor||0)).toFixed(6)} USDT (${Number(a.progresso_dobra_pct||0).toFixed(2)}%)</div>` : ''}
+          ${a.dobrou ? `<div class="meu-aporte-rend" style="color:var(--gold)">✓ Ciclo concluído: aporte já dobrou</div>` : ''}
+          ${a.rendimento_pendente > 0 ? `<div class="meu-aporte-rend">✦ ${a.rendimento_pendente.toFixed(6)} USDT pendente</div>` : ''}
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px">${fmtDate(a.data_aporte)}</div>
+        </div>
+        ${a.status==='aprovado' && a.projeto_status==='ativo' && !a.dobrou ? `<button class="btn btn-green btn-sm" onclick="coletarRendimento(${a.id}, this)">↓ Coletar</button>` : ''}
+      </div>`).join('');
+  } catch(e) { toast('Erro: ' + e.message, 'err'); }
+}
+
+async function coletarRendimento(id, btn) {
+  btn.disabled = true; btn.textContent = '...';
+  try {
+    const r = await api('/api/projetos/coletar', 'POST', { aporte_id: id });
+    toast(r.message, 'ok');
+    loadMe(); loadMeusAportes();
+  } catch(e) { toast(e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = '↓ Coletar'; }
+}
+
+async function coletarTudoRendimento(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Coletando...'; }
+  try {
+    const r = await api('/api/projetos/coletar', 'POST', {});
+    toast(r.message, 'ok');
+    loadMe();
+    loadDashHistorico();
+    const pageAportes = document.getElementById('page-meus-aportes');
+    if (pageAportes && pageAportes.classList.contains('active')) loadMeusAportes();
+  } catch(e) {
+    toast(e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '↓ Coletar rendimento'; }
+  }
+}
+
+// ── SAQUE ──
+async function solicitarSaque() {
+  const valor = parseFloat(document.getElementById('saque-valor').value);
+  const carteira = document.getElementById('saque-carteira').value.trim();
+  try {
+    const r = await api('/api/saque', 'POST', { valor, carteira });
+    toast(r.message, 'ok');
+    document.getElementById('saque-valor').value = '';
+    loadMe(); loadSaques();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function loadSaques() {
+  try {
+    const rows = await api('/api/meus_saques');
+    const el = document.getElementById('saques-list');
+    if (!rows.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">↑</div><div class="empty-txt">Nenhum saque</div></div>'; return; }
+    el.innerHTML = rows.map(s => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(212,175,55,.06)">
+        <div>
+          <div style="font-size:12px;color:var(--text)">${s.valor_liquido.toFixed(4)} USDT líquido</div>
+          <div style="font-size:10px;color:var(--text-dim)">${s.carteira.slice(0,10)}... • ${fmtDate(s.data_solicitacao)}</div>
+        </div>
+        <span class="badge badge-${statusBadge(s.status)}">${s.status}</span>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+// ── HISTÓRICO ──
+async function loadHistorico() {
+  try {
+    const rows = await api('/api/historico');
+    const el = document.getElementById('historico-list');
+    if (!rows.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">≡</div><div class="empty-txt">Nenhuma movimentação</div></div>'; return; }
+    el.innerHTML = `<table class="tbl"><thead><tr>
+      <th>Tipo</th><th>Valor</th><th>Descrição</th><th>Data</th>
+    </tr></thead><tbody>${rows.map(r => `<tr>
+      <td>${tipoLabel(r.tipo)}</td>
+      <td class="mono" style="color:${r.tipo.includes('SAQUE')?'var(--red)':'var(--green)'}">${r.tipo.includes('SAQUE')?'-':'+'} ${r.valor.toFixed(4)}</td>
+      <td style="color:var(--text-dim)">${esc(r.descricao||'')}</td>
+      <td class="mono">${fmtDate(r.data_evento)}</td>
+    </tr>`).join('')}</tbody></table>`;
+  } catch(e) { toast('Erro: ' + e.message, 'err'); }
+}
+
+// ── REDE ──
+async function loadRede() {
+  try {
+    const d = await api('/api/rede');
+    const n1el = document.getElementById('rede-n1-list');
+    const n2el = document.getElementById('rede-n2-list');
+    document.getElementById('ref-link-txt2').textContent = `${location.origin}/register?ref=${d.codigo_indicacao}`;
+    if (!d.nivel1.length) n1el.innerHTML = '<div class="empty"><div class="empty-icon">⬡</div><div class="empty-txt">Nenhum indicado</div></div>';
+    else n1el.innerHTML = d.nivel1.map(u => `
+      <div class="rede-card">
+        <div class="rede-user">${esc(u.indicado)}</div>
+        <div class="rede-val">${u.total_depositado.toFixed(2)} USDT</div>
+      </div>`).join('');
+    if (!d.nivel2.length) n2el.innerHTML = '<div class="empty"><div class="empty-icon">⬡</div><div class="empty-txt">Nenhum indicado</div></div>';
+    else n2el.innerHTML = d.nivel2.map(u => `
+      <div class="rede-card">
+        <div class="rede-user">${esc(u.indicado)}</div>
+        <div class="rede-val">${u.total_depositado.toFixed(2)} USDT</div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+// ── ADMIN ──
+async function loadAdminDash() {
+  try {
+    const d = await api('/api/admin/dashboard');
+    document.getElementById('adm-usuarios').textContent = d.total_usuarios;
+    document.getElementById('adm-staking').textContent = `${d.total_em_projetos.toFixed(2)} USDT`;
+    document.getElementById('adm-disponivel').textContent = `${d.total_disponivel.toFixed(2)} USDT`;
+    document.getElementById('adm-projetos-ativos').textContent = d.projetos_ativos;
+    document.getElementById('adm-aportes-p').textContent = d.aportes_pendentes;
+    document.getElementById('adm-saques-p').textContent = d.saques_pendentes;
+    document.getElementById('adm-rendimentos').textContent = `${d.total_rendimentos_pagos.toFixed(2)} USDT`;
+    document.getElementById('adm-comissoes').textContent = `${d.total_comissoes.toFixed(2)} USDT`;
+    if (d.aportes_pendentes > 0 || d.saques_pendentes > 0) {
+      const b = document.getElementById('admin-badge');
+      b.style.display = '';
+      b.textContent = d.aportes_pendentes + d.saques_pendentes;
+    }
+    if (d.aportes_pendentes > 0) {
+      const b = document.getElementById('tab-aportes-badge');
+      b.style.display = ''; b.textContent = d.aportes_pendentes;
+    }
+    if (d.saques_pendentes > 0) {
+      const b = document.getElementById('tab-saques-badge');
+      b.style.display = ''; b.textContent = d.saques_pendentes;
+    }
+  } catch(e) {}
+}
+
+async function loadAdminProjetos() {
+  try {
+    const rows = await api('/api/admin/projetos');
+    const el = document.getElementById('admin-projetos-list');
+    if (!rows.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">⬡</div><div class="empty-txt">Nenhum projeto criado</div></div>'; return; }
+    el.innerHTML = rows.map(p => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(212,175,55,.06);flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-weight:600;color:var(--text)">${esc(p.nome)}</div>
+          <div style="font-size:11px;color:var(--text-dim)">${(p.rendimento_diario*100).toFixed(2)}%/dia • Meta: ${fmtUSDT(p.meta_usdt)} • ${catLabel(p.categoria)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge badge-${p.status==='ativo'?'green':p.status==='pendente'?'orange':'red'}">${p.status}</span>
+          ${p.status==='pendente'?`<button class="btn btn-green btn-sm" onclick="aprovarProjeto(${p.id})">✓ Aprovar</button>`:''}
+          ${p.status==='ativo'?`<button class="btn btn-red btn-sm" onclick="encerrarProjeto(${p.id})">■ Encerrar</button>`:''}
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function criarProjeto() {
+  const nome = document.getElementById('np-nome').value.trim();
+  const descricao = document.getElementById('np-descricao').value.trim();
+  const categoria = document.getElementById('np-categoria').value;
+  const meta_usdt = parseFloat(document.getElementById('np-meta').value);
+  const rendimento_diario = parseFloat(document.getElementById('np-rendimento').value);
+  if (!nome) return toast('Informe o nome', 'err');
+  if (!meta_usdt || meta_usdt < 100) return toast('Meta mínima: 100 USDT', 'err');
+  if (!rendimento_diario || rendimento_diario > 0.10) return toast('Rendimento entre 0.001 e 0.10', 'err');
+  try {
+    const r = await api('/api/admin/projetos/criar', 'POST', { nome, descricao, categoria, meta_usdt, rendimento_diario });
+    toast(r.message, 'ok');
+    document.getElementById('np-nome').value = '';
+    document.getElementById('np-descricao').value = '';
+    document.getElementById('np-meta').value = '';
+    document.getElementById('np-rendimento').value = '';
+    loadAdminProjetos();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function aprovarProjeto(id) {
+  try { const r = await api(`/api/admin/projetos/aprovar/${id}`, 'POST'); toast(r.message, 'ok'); loadAdminProjetos(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+async function encerrarProjeto(id) {
+  if (!confirm('Encerrar projeto?')) return;
+  try { const r = await api(`/api/admin/projetos/encerrar/${id}`, 'POST'); toast(r.message, 'ok'); loadAdminProjetos(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+async function loadAdminAportes() {
+  try {
+    const rows = await api('/api/admin/aportes_pendentes');
+    const el = document.getElementById('admin-aportes-list');
+    if (!rows.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">↓</div><div class="empty-txt">Nenhum aporte pendente</div></div>'; return; }
+    el.innerHTML = rows.map(a => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(212,175,55,.06);flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-weight:600;color:var(--text)">${esc(a.usuario)} → ${esc(a.projeto_nome||'')}</div>
+          <div style="font-size:11px;color:var(--text-dim)">${a.valor.toFixed(4)} USDT • TXID: ${(a.txid||'').slice(0,16)}... • ${fmtDate(a.data_aporte)}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-green btn-sm" onclick="aprovarAporte(${a.id})">✓ Aprovar</button>
+          <button class="btn btn-red btn-sm" onclick="rejeitarAporte(${a.id})">✕ Rejeitar</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function aprovarAporte(id) {
+  try { const r = await api(`/api/admin/aprovar_aporte/${id}`, 'POST'); toast(r.message, 'ok'); loadAdminAportes(); loadAdminDash(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+async function rejeitarAporte(id) {
+  try { const r = await api(`/api/admin/rejeitar_aporte/${id}`, 'POST'); toast(r.message, 'ok'); loadAdminAportes(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+async function loadAdminSaques() {
+  try {
+    const rows = await api('/api/admin/saques_pendentes');
+    const el = document.getElementById('admin-saques-list');
+    if (!rows.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">↑</div><div class="empty-txt">Nenhum saque pendente</div></div>'; return; }
+    el.innerHTML = rows.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(212,175,55,.06);flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-weight:600;color:var(--text)">${esc(s.usuario)} — ${s.valor_liquido.toFixed(4)} USDT líquido</div>
+          <div style="font-size:11px;color:var(--text-dim)">${s.carteira} • ${fmtDate(s.data_solicitacao)}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-green btn-sm" onclick="aprovarSaque(${s.id})">✓ Aprovar</button>
+          <button class="btn btn-red btn-sm" onclick="rejeitarSaque(${s.id})">✕ Rejeitar</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function aprovarSaque(id) {
+  const txid = prompt('TXID da transação de saída (opcional):') || '';
+  try { const r = await api(`/api/admin/aprovar_saque/${id}`, 'POST', { txid }); toast(r.message, 'ok'); loadAdminSaques(); loadAdminDash(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+async function rejeitarSaque(id) {
+  try { const r = await api(`/api/admin/rejeitar_saque/${id}`, 'POST'); toast(r.message, 'ok'); loadAdminSaques(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+async function loadAdminUsuarios() {
+  try {
+    const rows = await api('/api/admin/usuarios');
+    const wrap = document.getElementById('admin-usuarios-wrap');
+    if (!rows.length) { wrap.innerHTML = '<div class="empty" style="padding:30px"><div class="empty-icon">◎</div><div class="empty-txt">Nenhum usuário</div></div>'; return; }
+    wrap.innerHTML = `<table class="tbl"><thead><tr>
+      <th>Usuário</th><th>Nome</th><th>CPF</th><th>Email</th><th>Depositado</th><th>Saldo Disp.</th><th>Ganho</th><th>Cadastro</th>
+    </tr></thead><tbody>${rows.map(u => `<tr>
+      <td>${esc(u.username)}</td>
+      <td>${esc(u.nome_completo||'')}</td>
+      <td class="mono">${u.cpf||''}</td>
+      <td style="color:var(--text-dim)">${esc(u.email||'')}</td>
+      <td class="mono">${(u.total_depositado||0).toFixed(2)}</td>
+      <td class="mono" style="color:var(--gold)">${(u.saldo_disponivel||0).toFixed(4)}</td>
+      <td class="mono" style="color:var(--green)">${(u.total_ganho||0).toFixed(4)}</td>
+      <td class="mono">${fmtDate(u.data_cadastro)}</td>
+    </tr>`).join('')}</tbody></table>`;
+  } catch(e) {}
+}
+
+async function loadAdminConfig() {
+  try {
+    const d = await api('/api/admin/config');
+    document.getElementById('cfg-aporte-min').value = d.aporte_minimo;
+    document.getElementById('cfg-saque-min').value = d.saque_minimo;
+    document.getElementById('cfg-taxa-saque').value = d.taxa_saque;
+    document.getElementById('cfg-carteira').value = d.carteira_deposito;
+    document.getElementById('cfg-comissao-n1').value = d.comissao_n1;
+    document.getElementById('cfg-comissao-n2').value = d.comissao_n2;
+  } catch(e) {}
+}
+
+async function salvarConfig() {
+  const data = {
+    aporte_minimo: document.getElementById('cfg-aporte-min').value,
+    saque_minimo: document.getElementById('cfg-saque-min').value,
+    taxa_saque: document.getElementById('cfg-taxa-saque').value,
+    carteira_deposito: document.getElementById('cfg-carteira').value,
+    comissao_n1: document.getElementById('cfg-comissao-n1').value,
+    comissao_n2: document.getElementById('cfg-comissao-n2').value,
+  };
+  try { const r = await api('/api/admin/config', 'POST', data); toast(r.message, 'ok'); loadMe(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+async function creditarManual() {
+  const usuario = document.getElementById('cred-usuario').value.trim();
+  const valor = parseFloat(document.getElementById('cred-valor').value);
+  try { const r = await api('/api/admin/creditar_manual', 'POST', { usuario, valor }); toast(r.message, 'ok'); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+// ── MODAL ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
+});
+
+// ── COPY ──
+function copyRef() {
+  const txt = document.getElementById('ref-link-txt').textContent;
+  navigator.clipboard.writeText(txt).then(() => toast('Link copiado!', 'ok'));
+}
+function copyCarteira() {
+  const txt = document.getElementById('dep-carteira').textContent;
+  navigator.clipboard.writeText(txt).then(() => toast('Endereço copiado!', 'ok'));
+}
+
+// ── UTILS ──
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(d) { if (!d) return '—'; try { return new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch { return d; } }
+function fmtUSDT(v) { return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' USDT'; }
+function tipoLabel(t) {
+  const m = { RENDIMENTO:'✦ Rendimento', APORTE:'↓ Aporte', SAQUE:'↑ Saque', COMISSAO_N1:'◎ Comissão N1', COMISSAO_N2:'◎ Comissão N2', CREDITO_MANUAL:'+ Crédito' };
+  return m[t] || t;
+}
+function statusBadge(s) { return s==='aprovado'?'green':s==='pendente'?'orange':'red'; }
+function catLabel(c) {
+  const m = { crypto:'⛏ Crypto Mining', servidor:'🖥 Servidores/Infra', defi:'◈ DeFi Protocol', staking:'⬡ PoS Staking', arbitrage:'⇄ Arbitragem' };
+  return m[c] || c;
+}
+
+// ── AUTO REFRESH ──
+setInterval(loadMe, 60000);
+
+// ── INIT ──
+loadMe();
+loadProjetos();
+</script>
+</body>
+</html>
